@@ -1,0 +1,29 @@
+{
+  "source": "original.png",
+  "source_sha256": "24941180999d5294c8cb59f797f1f2bc4956fefd3ec43ee18a064dd4673faf41",
+  "crop_xywh": [
+    128,
+    144,
+    1280,
+    572
+  ],
+  "tool": "scripts/PrepareIntro.java",
+  "java_version": "openjdk version \"17.0.21\" 2026-10-20\nOpenJDK Runtime Environment Temurin-17.0.21+9 (build 17.0.21+9)\nOpenJDK 64-Bit Server VM Temurin-17.0.21+9 (build 17.0.21+9, mixed mode, sharing)",
+  "tool_sha256": "17856706ca7aed0494958f3863ee005ebba7d755462fde31747635e2a32ec7d8",
+  "conversion": "bicubic; fixed 256-colour silver/blue palette; nearest colour; opaque PNG",
+  "outputs": {
+    "kisc-labs-128.png": "5c7d4e8c39496aa5ef3bf19e156d306f1401dd704fdfe6b51fb81434278a0294",
+    "kisc-labs-208.png": "38cdb934c8852550e80747405fd11f8254fe9ce434c950ba4a2e564e150425f8",
+    "kisc-labs-304.png": "3c13ddbf9cee87068551900b14f060988efd178560c8b236b252b0250a6542cd",
+    "kisc-labs-80.png": "5e44c695ff47a3a5033ab51a2839440d0edf06ae047b1a06de04c929a5a843fa",
+    "laser.wav": "ff392541a6c8c8b5b4a8acac4b98b0e80ed60f07e56fd6dc717d74a3e0803770"
+  },
+  "sound": {
+    "file": "laser.wav",
+    "sha256": "ff392541a6c8c8b5b4a8acac4b98b0e80ed60f07e56fd6dc717d74a3e0803770",
+    "bytes": 2764,
+    "samples": 2720,
+    "rate": 8000,
+    "source": "original mathematical chirp, scripts/make_intro_sound.py"
+  }
+}

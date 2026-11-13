@@ -1,0 +1,114 @@
+{
+ "files": {
+  "beep_11k8.wav": {
+   "bytes": 4674,
+   "encoding": "pcm8",
+   "rate": 11025,
+   "sha256": "c4cb13358919bdd14752bc30cf4dfdc3776100f11d0913e9b890c1af9e2d3d9b",
+   "snr_db": null
+  },
+  "beep_16k16.wav": {
+   "bytes": 13484,
+   "encoding": "pcm16",
+   "rate": 16000,
+   "sha256": "7632d2af944d83ffeb3bb2ef184c2bd187ea1f37adad96a1039c35f062e98b3c",
+   "snr_db": null
+  },
+  "beep_8k16.wav": {
+   "bytes": 6764,
+   "encoding": "pcm16",
+   "rate": 8000,
+   "sha256": "4c21019f40f2b36a65fe041aa6f3d7b4633df83a2f05602538c8660a57784329",
+   "snr_db": null
+  },
+  "beep_8k8.wav": {
+   "bytes": 3404,
+   "encoding": "pcm8",
+   "rate": 8000,
+   "sha256": "30a0f0ad46171a12155dcb31eb4e9c67122e5294d0354856cbffc3b0b8e982da",
+   "snr_db": null
+  },
+  "beep_ima16k.wav": {
+   "bytes": 3644,
+   "encoding": "ima",
+   "rate": 16000,
+   "sha256": "314f0e24d9cdb9369a2dbad463c6814991fccfa9bfc699f235f9daddbeb0da3e",
+   "snr_db": 26.6
+  },
+  "beep_ima8k.wav": {
+   "bytes": 1852,
+   "encoding": "ima",
+   "rate": 8000,
+   "sha256": "477baf266b600f22bd4e6194256d7c13743691a3d0b49474d10cc6daf1555ac6",
+   "snr_db": 20.3
+  },
+  "beep_ms8k.wav": {
+   "bytes": 1882,
+   "encoding": "ms",
+   "rate": 8000,
+   "sha256": "313b1e4a9b862b5b5cc157e95564375543b7e7b7225fbf348cc5d54fd477ac3f",
+   "snr_db": 17.0
+  },
+  "fx.mid": {
+   "bytes": 45,
+   "encoding": "SMF type 0",
+   "sha256": "aa6cd1ac384837e4d50d4fc3cd9a7293596126a9f24baf895cd4d0d09862c173"
+  },
+  "long_11k8.wav": {
+   "bytes": 16582,
+   "encoding": "pcm8",
+   "rate": 11025,
+   "sha256": "7bd7829f22b6cd2ec838f5acb12f8ee001acbae304e563813a45c6e260ee67f9",
+   "snr_db": null
+  },
+  "long_16k16.wav": {
+   "bytes": 48044,
+   "encoding": "pcm16",
+   "rate": 16000,
+   "sha256": "e96c1be5981a1c16d5a73ee6b69063dd25fb2c044af2dd68702dac70c96c5fed",
+   "snr_db": null
+  },
+  "long_8k16.wav": {
+   "bytes": 24044,
+   "encoding": "pcm16",
+   "rate": 8000,
+   "sha256": "8135e8b7d1b485a529307a6ac74493791c24ec0d0cd5a342f051cdacba5646d3",
+   "snr_db": null
+  },
+  "long_8k8.wav": {
+   "bytes": 12044,
+   "encoding": "pcm8",
+   "rate": 8000,
+   "sha256": "a6f9dce7125de3afc5f627108cf0c8fd6f2bd7b5c724c1c96be4f8f163e3294f",
+   "snr_db": null
+  },
+  "long_ima16k.wav": {
+   "bytes": 12348,
+   "encoding": "ima",
+   "rate": 16000,
+   "sha256": "f4240c1ab9b99f07e7e09ed83d08dec861f4d4a44de594cee45ecaa7fbdb7da3",
+   "snr_db": 39.4
+  },
+  "long_ima8k.wav": {
+   "bytes": 6204,
+   "encoding": "ima",
+   "rate": 8000,
+   "sha256": "a0cfaa26ba5d9e4e2d8f205eb13844d50530227eedb987ef90a8e29d855fcc09",
+   "snr_db": 32.8
+  },
+  "long_ms8k.wav": {
+   "bytes": 6234,
+   "encoding": "ms",
+   "rate": 8000,
+   "sha256": "0d4c4fd1ee7e198a144b953c6e64d0d5a44f531b92858feb3e9142bc48a2047c",
+   "snr_db": 39.8
+  },
+  "melody.mid": {
+   "bytes": 100,
+   "encoding": "SMF type 0",
+   "sha256": "c65ecb953e4d47366159bd5945f2257a89dbde5c229bb0c3c1d6f3006a3d21b4"
+  }
+ },
+ "generator": "scripts/make_probe_sounds.py",
+ "origin": "synthetic, written for this project"
+}

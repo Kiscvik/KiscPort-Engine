@@ -1,0 +1,32 @@
+[
+  {
+    "file": "ecj.jar",
+    "url": "https://repo.maven.apache.org/maven2/org/eclipse/jdt/ecj/3.26.0/ecj-3.26.0.jar",
+    "sha256": "ac0ba5876eaf7ebb47749a0d1be179c51f194b9dd0b875d1c09e1b530f5a2db5"
+  },
+  {
+    "file": "proguard.jar",
+    "url": "https://repo.maven.apache.org/maven2/net/sf/proguard/proguard-base/6.2.2/proguard-base-6.2.2.jar",
+    "sha256": "7587a3a415d6aea1946f597f4babe710a245f085bac4dc5e7cda653acfc39b03"
+  },
+  {
+    "file": "cldcapi11.jar",
+    "url": "https://repo.maven.apache.org/maven2/org/microemu/cldcapi11/2.0.4/cldcapi11-2.0.4.jar",
+    "sha256": "f86f41bfb4097e4bd9cdfeca528960f6977cbda0f5785342adef9909a6a3baef"
+  },
+  {
+    "file": "midpapi20.jar",
+    "url": "https://repo.maven.apache.org/maven2/org/microemu/midpapi20/2.0.4/midpapi20-2.0.4.jar",
+    "sha256": "b7f6ed5e0344c7000643ecc114e6edff3587e8e77face546af0e12ffd6dbe826"
+  },
+  {
+    "file": "jdk.tar.gz",
+    "url": "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.21%2B9/OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.21_9.tar.gz",
+    "sha256": "78b08c7f5a0598242d5719c022e19479cb4a3aa45c37c19726a757a469ed1c15"
+  },
+  {
+    "file": "freej2me.tar.gz",
+    "url": "https://api.github.com/repos/TASEmulators/freej2me-plus/tarball/677d41b60e2cee4d7084055bc5b4152b2bc60ecb",
+    "sha256": "d6004e9f56abfd66bc82a38b48ed9bb20b5fa02abbc85b15184d2e34d4e25e39"
+  }
+]
