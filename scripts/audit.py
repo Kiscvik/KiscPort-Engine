@@ -134,9 +134,13 @@ def audit():
         # Optional JSR-135 MIDIControl: one class, loaded by name, so its absence is a catchable error.
         if m['name'] != 'kiscport/audio/MidiControlOut':
             assert 'javax/microedition/media/control/MIDIControl' not in m['classes'], 'MIDIControl outside MidiControlOut: ' + m['name']
-        # Mascot Capsule v3 (alpha renderer): optional and proprietary, one class, loaded by name.
-        if m['name'] != 'kiscport/renderer/MascotCubeScene':
-            assert not any(c.startswith('com/mascotcapsule/') for c in m['classes']), 'Mascot outside MascotCubeScene: ' + m['name']
+        # Mascot Capsule v3 (alpha cube, beta section renderer): optional and proprietary, loaded by name, only in
+        # these classes; they must not touch M3G or AssetSection, so they also work on a phone without JSR-184.
+        if m['name'] in ('kiscport/renderer/MascotCubeScene', 'kiscport/renderer/MascotSection'):
+            assert not any(c.startswith('javax/microedition/m3g/') or c == 'kiscport/renderer/AssetSection' for c in m['classes']), \
+                'Mascot class depends on M3G: ' + m['name']
+        else:
+            assert not any(c.startswith('com/mascotcapsule/') for c in m['classes']), 'Mascot outside MascotCubeScene/MascotSection: ' + m['name']
         for kind, owner, member, descriptor in m['refs']:
             assert resolves(models, owner, kind, member, descriptor), 'unavailable member: %s.%s%s' % (owner, member, descriptor)
             if not owner.startswith('kiscport/'):
@@ -162,5 +166,5 @@ if __name__ == '__main__':
     destination = ROOT/'build'/'audit.json'
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(report, indent=2, sort_keys=True)+'\n')
-    print('PASS: CLDC/MIDP/M3G class and member dependencies resolve; optional M3G isolated; Mascot only in MascotCubeScene')
+    print('PASS: CLDC/MIDP/M3G class and member dependencies resolve; optional M3G isolated; Mascot only in MascotCubeScene/MascotSection')
     print('Audit:', destination)

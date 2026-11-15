@@ -5,8 +5,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 os.chdir(ROOT)
 # Optional APIs that are not in the MIDP 2.0 API jar. Compile-only stubs (Probe's), never packaged; each may be
-# used by one class only (scripts/audit.py), loaded by name on the phone:
-# JSR-135 MIDIControl -> kiscport/audio/MidiControlOut; Mascot Capsule v3 -> kiscport/renderer/MascotCubeScene (alpha).
+# used only by its own classes (scripts/audit.py), loaded by name on the phone:
+# JSR-135 MIDIControl -> kiscport/audio/MidiControlOut; Mascot Capsule v3 -> kiscport/renderer/MascotCubeScene
+# (alpha) and MascotSection (beta).
 STUBS = [ROOT/'probe/stubs/javax/microedition/media/control/MIDIControl.java'] + \
     sorted((ROOT/'probe/stubs/com/mascotcapsule/micro3d/v3').glob('*.java'))
 

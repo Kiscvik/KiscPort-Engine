@@ -7,6 +7,8 @@ public class Graphics3D {
     public static final int PRIMITVE_QUADS = 0x04000000;
     public static final int PDATA_COLOR_PER_FACE = 0x0800;
     public static final int PDATA_TEXURE_COORD = 0x3000;
+    /** Palette index 0 is transparent. Value as in FreeJ2ME-Plus's implementation; not yet run on a phone. */
+    public static final int PATTR_COLORKEY = 0x10;
     public Graphics3D() { }
     public final void bind(Graphics graphics) { }
     public final void renderPrimitives(Texture texture, int x, int y, FigureLayout layout, Effect3D effect,

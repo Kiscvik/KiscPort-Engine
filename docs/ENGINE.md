@@ -27,10 +27,11 @@ KISC-LABS, 14 de noviembre de 2026. Cómo funciona el motor, qué contiene este 
 | `renderer/AssetSection` | Lee tramos de escenario KPS1/KPS3 y sus páginas de textura desde `AssetSection.ROOT` |
 | `renderer/CubeScene` | Escena M3G de la demo |
 | `renderer/MascotCubeScene` | **Alpha**: el mismo cubo con Mascot Capsule v3 (`#` en la demo) |
+| `renderer/MascotSection` | **Beta**: un tramo KPS3 dibujado con Mascot, sin M3G |
 | `demo/DemoCanvas`, `DemoScene` | La demo: bucle, intro, entrada, pausa, textos, FPS y cambio de renderer |
 
 Reglas que comprueba `scripts/audit.py`: M3G sólo en `kiscport/renderer/`, MMAPI sólo en `kiscport/audio/`,
-`MIDIControl` sólo en `MidiControlOut` y Mascot sólo en `MascotCubeScene`. Así un teléfono sin esas APIs sigue
+`MIDIControl` sólo en `MidiControlOut` y Mascot sólo en `MascotCubeScene` y `MascotSection`, que no pueden usar M3G. Así un teléfono sin esas APIs sigue
 arrancando.
 
 ## Mascot Capsule v3 (alpha)
@@ -64,6 +65,57 @@ color por cara o su propia iluminación, texturas BMP de 8 bits (256 colores) de
 suma o resta, y orden de polígonos en lugar de profundidad por píxel. M3G sigue siendo el renderer de producción y
 la ruta compatible con el W900i. Siguiente paso si el cubo confirma la ventaja: pasar un tramo de escenario
 (`AssetSection`) a Mascot y medirlo con Probe en los dos teléfonos.
+
+### Herramientas beta para el siguiente juego
+
+Tres piezas para probar Mascot con contenido real, sin formatos propietarios: usan los mismos tramos KPS3 que
+`AssetSection` y nada de HI Corporation. No hay exportadores a `.mbac` ni `.mtra`, ni dependencia de su SDK.
+
+1. **Comprobador:** `python3 scripts/mascot.py check carpeta_del_nivel`. Lee `chunkN.kps` y `stage_N.png` y da un
+   veredicto (`CABE`, `CABE CON PERDIDAS` o `NO CABE`). Separa los límites de la API de lo que va más allá de lo
+   medido en los teléfonos. Por tramo cuenta:
+   - triángulos y llamadas a `renderPrimitives` (255 como máximo por llamada);
+   - memoria expandida (64 bytes por triángulo);
+   - triángulos cuyo color de vértice se pierde: Mascot no multiplica la textura por el color, así que se pierden
+     la modulación y el Gouraud;
+   - coordenadas de textura fuera de la página.
+
+   Por página: colores, alfa parcial y tamaño.
+2. **Conversor de texturas:** `python3 scripts/mascot.py texture pagina.png pagina.bmp`. Genera un BMP de 8 bits
+   con el formato que Probe ya usó en los dos teléfonos. Si la página tiene 256 colores o menos, la paleta es
+   exacta; si tiene más, una reducción determinista avisa del error RMS.
+   - El alfa menor que 128 (el umbral de M3G) pasa a un *colour key*: la entrada 0 de la paleta es magenta FF00FF
+     y sólo existe en las páginas que lo necesitan.
+   - El alfa parcial se avisa como pérdida.
+   - Más de 256 px no cabe.
+3. **Renderer de tramos:** `kiscport.renderer.MascotSection`. Dibuja un tramo KPS3 con páginas `stage_N.bmp`.
+   - No usa `AssetSection` ni M3G (lo comprueba la auditoría), así que funciona en un teléfono sin JSR-184. Se
+     carga por nombre y sus métodos públicos sólo usan enteros y `Graphics`.
+   - Uso: `loadPages()` por nivel; `new MascotSection(n)` por tramo; en cada cuadro `view(...)`, `begin(g)`,
+     `draw()` de todos los tramos visibles y `end(g)`. Mascot ordena los polígonos dentro de un mismo
+     `begin`/`end`, así que todos los tramos de un cuadro van juntos.
+   - Todavía no tiene intervalos de visibilidad ni carga por pasos: el constructor lee el tramo entero.
+
+**Qué está comprobado.** En PC, el conversor y el comprobador. En FreeJ2ME-Plus, cuya Mascot es una
+reimplementación, con un nivel sintético:
+- `MascotSection` lee los mismos triángulos que `AssetSection`;
+- la textura no sale volteada;
+- el colour key deja ver el fondo;
+- un vértice rojo no tiñe la textura (la pérdida esperada).
+
+Con los tramos del primer experimento (no incluidos aquí), el comprobador marcó dos cosas que hay que mirar en el
+teléfono:
+- coordenadas de hasta ±12284, cuando lo medido llega a ±2600;
+- entre 86 y 432 triángulos por tramo con un color de vértice que Mascot no aplica.
+
+**Qué hay que comprobar en el teléfono (W995 y W900i) con el siguiente juego:**
+- que el colour key (`PATTR_COLORKEY` = 0x10, valor tomado de FreeJ2ME) recorte de verdad;
+- si `renderPrimitives` dibuja las dos caras (FreeJ2ME no descarta caras traseras);
+- el recorte de polígonos que cruzan el plano cercano;
+- la precisión con coordenadas grandes;
+- `ms` con cargas por encima de 768 y 3072 triángulos;
+- páginas que no son cuadradas;
+- el tiempo de carga del constructor y la memoria real frente a la estimada.
 
 ## Cómo corre un cuadro
 
@@ -124,8 +176,9 @@ de ese juego. Entrarán aquí cuando estén separados (ver «Qué falta»).
 | `scripts/bootstrap.py` | Descarga herramientas fijadas por SHA-256 y prepara el emulador | PC |
 | `scripts/prepare_intro.py`, `make_intro_sound.py` | Receta de los recursos de marca (`assets/intro/`); no se volvió a ejecutar para 0.8.0, sus salidas están versionadas con hash | PC |
 | `scripts/build.py` | JAR de la demo; verifica metadatos, StackMap y dependencias | PC |
-| `scripts/test.py` | FrameStats, luz, tiras, textos, auditoría CLDC, compilación negativa | PC |
-| `scripts/smoke.py` (`absent`) | La demo con y sin M3G, y el cubo Mascot alpha (`#`) | Emulador |
+| `scripts/test.py` | FrameStats, luz, tiras, textos, auditoría CLDC, compilación negativa, herramientas Mascot | PC |
+| `scripts/smoke.py` (`absent`) | La demo con y sin M3G, el cubo Mascot alpha (`#`) y, sin `absent`, `MascotSection` | Emulador |
+| `scripts/mascot.py` (`texture`, `check`) | **Beta**: páginas a BMP de 8 bits y si un nivel cabe en Mascot | PC |
 | `scripts/reproducibility.py` | Dos construcciones idénticas | PC |
 | `scripts/build_probe.py`, `smoke_probe.py` | KiscPort Probe | PC / emulador |
 | Probe en el teléfono | Capacidades y rendimiento reales | **Teléfono** |
