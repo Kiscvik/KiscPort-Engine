@@ -91,3 +91,8 @@ Las herramientas que descarga `bootstrap.py` tienen sus propias licencias y no s
 
 **0.8.0** (13 de noviembre de 2026): primera versión pública. Motor, demo y Probe 1.2.0 probados en PC y
 FreeJ2ME-Plus; pendiente su prueba en teléfonos. Lo siguiente está en [docs/ENGINE.md](docs/ENGINE.md#qué-falta).
+
+**Probe 1.4.0** (14 de noviembre de 2026): añade Mascot Capsule v3 (prueba 7), una comparación con M3G que dice
+cuál conviene en cada teléfono (prueba 8), y en las pruebas 3D sólo `*` las detiene: otra tecla mantiene la
+pantalla encendida sin cortarlas. Probada en PC y
+FreeJ2ME-Plus; pendiente en teléfonos.

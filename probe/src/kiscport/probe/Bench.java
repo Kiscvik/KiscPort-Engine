@@ -2,7 +2,7 @@ package kiscport.probe;
 
 import javax.microedition.lcdui.Display;
 
-/** Performance tests that need an optional API (M3G). Loaded by name, so a phone without JSR-184 only
+/** Performance tests that need an optional API (M3G, Mascot Capsule v3). Loaded by name, so a phone without it only
  *  fails inside the implementing class. The implementation takes the screen while it runs and calls
  *  ProbeCanvas.benchDone with its result lines when it ends. */
 interface Bench {

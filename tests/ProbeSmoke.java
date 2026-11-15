@@ -8,10 +8,13 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-/** FreeJ2ME-Plus run of KiscPort Probe 1.2: menu navigation, information, the 9 audio tests with their
- *  listening question, the performance tests in quick mode (with a 3D capture), memory, the quick run that
- *  ends on a saved report, and PNG captures read back. The emulator plays audio through desktop Java and
- *  renders M3G on the PC: it proves the MIDlet logic, never W900i/W995 mixing or speed. */
+/** FreeJ2ME-Plus run of KiscPort Probe 1.4: menu navigation, information, the 9 audio tests with their
+ *  listening question, the performance tests in quick mode (M3G and Mascot Capsule v3, each with a 3D capture, and
+ *  the comparison that ends in a verdict),
+ *  memory, the quick run that ends on a saved report, and PNG captures read back. The emulator plays audio
+ *  through desktop Java and renders M3G and Mascot in software on the PC: it proves the MIDlet logic, never
+ *  W900i/W995 mixing or speed. FreeJ2ME cannot run without its Mascot classes, so the absent case is checked by
+ *  scripts/build_probe.py instead: only MascotBench links to com/mascotcapsule, and it is loaded by name. */
 public final class ProbeSmoke {
     static Object canvas; static File evidence, files; static volatile int frames; static Class pngWriter;
     static final int UP = -1, DOWN = -2, LEFT = -3, FIRE = -5;
@@ -54,9 +57,11 @@ public final class ProbeSmoke {
 
     static void bench(int n, String expect) throws Exception {
         key(Canvas.KEY_NUM0 + n);
-        if (n == 1) { Thread.sleep(150); key(Canvas.KEY_NUM0); }    // 0 in the 3D screen: capture a frame
+        if (n == 1 || n == 7) { Thread.sleep(150); key(Canvas.KEY_NUM0); }    // 0 in the 3D screen: capture a frame
+        if (n == 7) { key(Canvas.KEY_NUM5); key(DOWN); key(FIRE); }          // other keys keep the screen awake, never stop
         Thread.sleep(500);
         if (n != 6) image("probe-bench-" + n);
+        if (n == 7) { image("probe-bench-7b"); Thread.sleep(500); image("probe-bench-7c"); Thread.sleep(500); image("probe-bench-7d"); }   // later steps (TEX, RELLENO)
         idle(120000);
         String r = ((String[]) field(canvas, "benchResults"))[n];
         check(r != null && r.indexOf(expect) >= 0, "performance test " + n + " reported " + expect);
@@ -67,11 +72,13 @@ public final class ProbeSmoke {
      *  emulator. The probe must then say so; the PNG encoder itself is checked on a real Probe screen drawn into
      *  an Image and written by PngWriter, then read back by ImageIO. */
     static void captureAttempt(String label) throws Exception {
-        int before = ((java.util.Vector) field(canvas, "log")).size();
-        key(Canvas.KEY_POUND); Thread.sleep(1500);
+        // The log keeps its last 200 lines, so indices shift once it is full: look at the lines after the last one seen.
         java.util.Vector log = (java.util.Vector) field(canvas, "log");
+        Object before = log.isEmpty() ? null : log.lastElement();
+        key(Canvas.KEY_POUND); Thread.sleep(1500);
         String last = "";
-        for (int i = before; i < log.size(); i++) if (String.valueOf(log.elementAt(i)).startsWith("Captura")) last = String.valueOf(log.elementAt(i));
+        for (int i = log.size() - 1; i >= 0 && log.elementAt(i) != before; i--)
+            if (last.length() == 0 && String.valueOf(log.elementAt(i)).startsWith("Captura")) last = String.valueOf(log.elementAt(i));
         check(last.startsWith("Captura guardada") || last.startsWith("Captura no guardada"), label + ": # saved a capture or said why (" + last + ")");
     }
     static void encode(String name, String label) throws Exception {
@@ -138,8 +145,22 @@ public final class ProbeSmoke {
         // Graphics in quick mode, with a 3D capture (0 inside the benchmark screen).
         Field q = canvas.getClass().getDeclaredField("quick"); q.setAccessible(true); q.setBoolean(canvas, true);
         open(3, GRAPHICS); image("probe-graphics-empty");
+        key(Canvas.KEY_NUM4); Thread.sleep(250); key(Canvas.KEY_STAR); idle(60000);      // * stops a 3D test
+        check(((String[]) field(canvas, "benchResults"))[4].indexOf("Detenida por el usuario") >= 0, "* in the 3D screen stops the test");
         bench(1, "GEO 12 tri QUAD"); bench(2, "ENVIO 768 tri FILA"); bench(3, "TEX 16x16"); bench(4, "RELLENO pantalla x8"); bench(5, "SUBIDA 1617");
         check(((String[]) field(canvas, "benchResults"))[1].indexOf("CAPTURA") >= 0, "0 in the 3D screen saved (or explained) a capture");
+        bench(7, "MC3 GEO 12 tri QUADS");
+        String mc3 = ((String[]) field(canvas, "benchResults"))[7];
+        check(mc3.indexOf("MC3 TEX 256x256") >= 0 && mc3.indexOf("MC3 RELLENO pantalla x8") >= 0 && mc3.indexOf("MC3 ENVIO 768 tri TRIANGLES") >= 0,
+            "Mascot test ran its four series");
+        check(mc3.indexOf("detenida") < 0, "5, joystick and OK in the 3D screen did not stop the test");
+        check(mc3.indexOf("MC3 CAPTURA") >= 0, "0 in the Mascot screen saved (or explained) a capture");
+        bench(8, "fases rapidas de emulador");
+        String verdict = (String) field(canvas, "compareVerdict");
+        String cmp = String.valueOf(field(canvas, "compareLines"));
+        check(verdict != null && cmp.indexOf("CMP M3G mallas 3072 tri") >= 0 && cmp.indexOf("CMP Mascot relleno pantalla x4") >= 0,
+            "the comparison measured both APIs and gave a verdict: " + verdict);
+        image("probe-graphics-verdict");
         image("probe-graphics");
 
         open(5, MEMORY); image("probe-memory-before");
@@ -159,8 +180,8 @@ public final class ProbeSmoke {
         check(intField("screen") == REPORT && field(canvas, "saved") != null, "the quick run ends on the report and saves it (or says why)");
         Method rm = canvas.getClass().getDeclaredMethod("report"); rm.setAccessible(true);
         String all = java.util.Arrays.toString((String[]) rm.invoke(canvas));
-        check(all.indexOf("KISCPORT PROBE") >= 0 && all.indexOf("rend GEO") >= 0 && all.indexOf("audio T") >= 0 && all.indexOf("AVISO") >= 0,
-            "report lists identity, audio and performance, and flags the quick emulator phases");
+        check(all.indexOf("KISCPORT PROBE") >= 0 && all.indexOf("rend GEO") >= 0 && all.indexOf("audio T") >= 0 && all.indexOf("AVISO") >= 0
+            && all.indexOf("VEREDICTO 3D") >= 0, "report lists identity, the 3D verdict, audio and performance, and flags the quick emulator phases");
         image("probe-report");
         captureAttempt("report screen");
         encode("report.png", "PngWriter on the report screen");

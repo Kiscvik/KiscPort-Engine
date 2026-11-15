@@ -68,6 +68,19 @@ de ese juego. Entrarán aquí cuando estén separados (ver «Qué falta»).
   dos tramos residentes y prepara el siguiente, y la visibilidad precalculada en el PC (KPV1).
 - No se fuerza el recolector de basura por cuadro. Antes de cambiar una política de memoria, medir en el
   teléfono con Probe.
+- **Lección del W900i (M3G 1.0), noviembre de 2026.** En el primer experimento, al cambiar un conjunto de objetos
+  por otro, la construcción del siguiente lanzaba `OutOfMemoryError` y la sesión terminaba. La corrección se
+  aplicará al gestor cuando entre aquí:
+  1. Soltar las referencias del conjunto anterior antes de construir el siguiente (ruta normal, sin cambios).
+  2. Sólo si esa construcción falla: abandonar la precarga pendiente y las vistas por intervalo opcionales de los
+     tramos residentes (`AssetSection.views`; sin ellas el tramo se dibuja entero), pedir una recolección y
+     **reintentar una vez**. Si vuelve a fallar, terminar con un mensaje que diga la fase (conjunto, tramo, dibujo).
+
+  Es una ruta de recuperación que se activa por el fallo, no por el modelo de teléfono, y no cambia la regla de no
+  recolectar por cuadro. Puede causar una pausa breve al cambiar de conjunto. Alcance de la evidencia: el
+  propietario del teléfono superó en un W900i el punto que antes fallaba. No hubo sesión larga ni medida de FPS,
+  ningún contador confirma que la recuperación se activara, FreeJ2ME no reproduce la memoria M3G del W900i y ese
+  binario no se volvió a probar en el W995.
 
 ## Construcción, pruebas y evidencia
 
@@ -86,8 +99,10 @@ de ese juego. Entrarán aquí cuando estén separados (ver «Qué falta»).
 
 1. **Separar e incorporar** el resto del motor del primer experimento: lector de mundo KPW2, renderer de
    escenario con visibilidad, personajes con huesos (KPC), catálogo de objetos por zonas y gestión de audio. Cada
-   pieza entra aquí sólo sin reglas ni nombres de ningún juego.
+   pieza entra aquí sólo sin reglas ni nombres de ningún juego. El gestor de tramos y del catálogo de objetos
+   debe llegar con la recuperación ante `OutOfMemoryError` y los mensajes por fase descritos en «Memoria».
 2. **Perfiles de dispositivo** construidos con los informes de Probe: memoria utilizable, triángulos por cuadro,
-   textura segura y coste de tiras, relleno y skinning.
+   textura segura y coste de tiras, relleno y skinning. Probe mide hoy el montón Java; falta medir la memoria M3G
+   creando y soltando mallas y texturas como al cambiar de tramo o de conjunto, que es lo que falló en el W900i.
 3. **Comprobador de viabilidad**: cruzar lo que necesita un contenido con un perfil y decir si cabe y con qué límites.
 4. **Importadores de formatos abiertos**: glTF a KPC/KPM/KPO, PNG a atlas, nivel JSON a KPW2 y KPV1.

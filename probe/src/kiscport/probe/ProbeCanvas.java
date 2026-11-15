@@ -57,12 +57,25 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
     private String[] properties, types, controls, apis, m3g, gl;
     private boolean glRequested;
     private MidiFx midi;
-    /** Performance tests (screens Graphics and Memory). M3G ones run in M3GBench, loaded by name. */
-    static final int BENCH_GEOMETRY = 1, BENCH_SUBMIT = 2, BENCH_TEXTURES = 3, BENCH_FILL = 4, BENCH_UPLOAD = 5, BENCH_MEMORY = 6, BENCH_ALL = 9;
+    /** Performance tests (screens Graphics and Memory). M3G ones run in M3GBench and the Mascot Capsule v3 one in
+     *  MascotBench, each loaded by name: a phone without that API only fails inside its class. */
+    static final int BENCH_GEOMETRY = 1, BENCH_SUBMIT = 2, BENCH_TEXTURES = 3, BENCH_FILL = 4, BENCH_UPLOAD = 5, BENCH_MEMORY = 6,
+        BENCH_MASCOT = 7, BENCH_COMPARE = 8, BENCH_ALL = 9;
     private static final int MEMORY_CAP_KB = 8192, MEMORY_BLOCK_KB = 64;
     private static final String[] BENCH_NAMES = {null, "Mallas: 12 a 3072 triangulos", "Envio: TRI / QUAD / FILA (768)",
         "Texturas: 16 a 512 px", "Relleno de pantalla x1-x8", "Subida de vertices (skinning)",
-        "Memoria: reservar hasta " + MEMORY_CAP_KB / 1024 + " MB (puede cerrar la app)", null, null, "Todo (1-5, sin memoria)"};
+        "Memoria: reservar hasta " + MEMORY_CAP_KB / 1024 + " MB (puede cerrar la app)",
+        "Mascot Capsule v3: mallas, envio, texturas, relleno", "M3G contra Mascot: cual conviene aqui", "Todo (1-5, sin memoria)"};
+    /** The four loads of the comparison, measured with both APIs (frame ms, which includes the work a driver leaves
+     *  for flushGraphics). Same meshes as the separate tests. */
+    static final String[] COMPARE_NAMES = {"mallas 768 tri", "mallas 3072 tri", "textura 128 px (384 tri)", "relleno pantalla x4"};
+    /** A side wins a load when it is at least this much faster (percent of the other's frame time). */
+    static final int COMPARE_MARGIN = 115;
+    /** Frame ms x10 per API (0 M3G, 1 Mascot) and load; -1 = not measured. */
+    private final int[][] compareMs = new int[2][COMPARE_NAMES.length];
+    private final Vector compareLines = new Vector();
+    private volatile int compareStage;
+    private volatile String compareVerdict;
     private final String[] benchResults = new String[BENCH_NAMES.length];
     private final Vector benchLines = new Vector();
     private int benchRequest;
@@ -72,14 +85,14 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
     private String saved;
     /** Screens. HOME lists the others; QUICK runs everything that needs no listening and ends on REPORT. */
     static final int HOME = 0, QUICK = 1, INFO = 2, GRAPHICS = 3, SOUND = 4, MEMORY = 5, REPORT = 6, LOG = 7, HELP = 8, VERDICT = 9;
-    private static final String[] MENU = {null, "Prueba rapida (recomendada)", "Informacion del telefono", "Graficos 3D (M3G)",
+    private static final String[] MENU = {null, "Prueba rapida (recomendada)", "Informacion del telefono", "Graficos 3D (M3G, Mascot)",
         "Sonido", "Memoria", "Informe y capturas", "Registro", "Ayuda"};
     private static final String[] MENU_HINT = {null, "Informacion + graficos + informe, unos 2 min, sin tocar nada",
-        "Modelo, Java, APIs, M3G, OpenGL ES, audio", "Mallas, texturas, relleno, skinning", "9 pruebas; despues usted dice que oyo",
+        "Modelo, Java, APIs, M3G, OpenGL ES, audio", "Mallas, texturas, relleno, skinning; 7 Mascot", "9 pruebas; despues usted dice que oyo",
         "Cuanta memoria Java puede usar un port", "Ver, guardar en archivo, capturas PNG", "Todo lo ocurrido, con tiempos",
         "Teclas y como enviar los resultados"};
     /** Graphics screen entries: bench ids in list order. */
-    private static final int[] GRAPHICS_TESTS = {BENCH_ALL, BENCH_GEOMETRY, BENCH_SUBMIT, BENCH_TEXTURES, BENCH_FILL, BENCH_UPLOAD};
+    private static final int[] GRAPHICS_TESTS = {BENCH_COMPARE, BENCH_ALL, BENCH_GEOMETRY, BENCH_SUBMIT, BENCH_TEXTURES, BENCH_FILL, BENCH_UPLOAD, BENCH_MASCOT};
     private boolean quickRun, captureRequest;
     private String toast;
     private long toastAt;
@@ -158,12 +171,12 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
         repaint();
     }
 
-    /** Digit shortcuts: HOME 1-8 opens, SOUND 1-9 runs and 0 cycles the format, GRAPHICS 1-5 and 9 run the same
-     *  numbered tests as before, REPORT 1 saves, MEMORY 5 starts. */
+    /** Digit shortcuts: HOME 1-8 opens, SOUND 1-9 runs and 0 cycles the format, GRAPHICS
+     *  1-5, 7 (Mascot), 8 (comparison) and 9 run the same numbered tests as before, REPORT 1 saves, MEMORY 5 starts. */
     private void digit(int d) {
         if (screen == HOME) { if (d >= 1 && d < MENU.length) choose(d - 1); return; }
         if (screen == SOUND) { if (d == 0) cycleFormat(); else runSound(d); return; }
-        if (screen == GRAPHICS) { if (d >= 1 && d <= 5 || d == 9) runBench(d); return; }
+        if (screen == GRAPHICS) { if (d >= 1 && d <= 5 || d == BENCH_MASCOT || d == BENCH_COMPARE || d == 9) runBench(d); return; }
         if (screen == REPORT && d == 1) { request(-1); return; }
         if (screen == MEMORY && d == 5) { runBench(BENCH_MEMORY); return; }
         if (d == 5) choose(sel);
@@ -444,15 +457,88 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
         running = BENCH_NAMES[b]; t0 = System.currentTimeMillis();
         add("== R" + b + " " + BENCH_NAMES[b] + (quick ? " (RAPIDA: solo emulador)" : ""));
         if (b == BENCH_MEMORY) { benchDone(b, memory(), null); return; }
+        if (b == BENCH_COMPARE) {
+            compareLines.removeAllElements(); compareVerdict = null; compareStage = 0;
+            for (int api = 0; api < 2; api++) for (int i = 0; i < COMPARE_NAMES.length; i++) compareMs[api][i] = -1;
+            benchRunning = true;
+            if (!compareStart(0)) benchDone(b, new String[0], null);      // no M3G: straight to Mascot
+            return;
+        }
+        boolean mascot = b == BENCH_MASCOT;
         try {
-            Bench bench = (Bench)Class.forName("kiscport.probe.M3GBench").newInstance();
+            // The API itself first: without it the test ends here, before taking the screen.
+            if (mascot) Class.forName("com.mascotcapsule.micro3d.v3.Graphics3D");
+            Bench bench = (Bench)Class.forName(mascot ? "kiscport.probe.MascotBench" : "kiscport.probe.M3GBench").newInstance();
             benchRunning = true;
             bench.start(this, Display.getDisplay(midlet), b, quick);
-        } catch (Throwable e) { benchDone(b, new String[] {"M3G no disponible: " + e}, null); }
+        } catch (Throwable e) {
+            benchRunning = false;
+            benchDone(b, new String[] {(mascot ? "MC3 Mascot Capsule v3 no disponible: " : "M3G no disponible: ") + e}, null);
+        }
     }
 
-    /** Called by M3GBench from its own thread when it ends (or by the memory test). */
+    /** Starts one API of the comparison (0 M3G, 1 Mascot); false, with a line saying so, when it is missing. */
+    private boolean compareStart(int stage) {
+        try {
+            if (stage == 1) Class.forName("com.mascotcapsule.micro3d.v3.Graphics3D");
+            Bench bench = (Bench)Class.forName(stage == 1 ? "kiscport.probe.MascotBench" : "kiscport.probe.M3GBench").newInstance();
+            bench.start(this, Display.getDisplay(midlet), BENCH_COMPARE, quick);
+            return true;
+        } catch (Throwable e) {
+            compareLines.addElement("CMP " + (stage == 1 ? "Mascot Capsule v3" : "M3G") + " no disponible: " + e);
+            return false;
+        }
+    }
+
+    /** Frame time of one load (ms x10), reported by the bench of that API during the comparison. */
+    void measured(int api, int load, int frameMs10) {
+        if (api >= 0 && api < 2 && load >= 0 && load < COMPARE_NAMES.length) compareMs[api][load] = Math.max(1, frameMs10);
+    }
+
+    /** The comparison: each load, then the verdict over the sum of frame times (doing the four loads once). */
+    private String[] compareFinish() {
+        Vector v = new Vector();
+        for (int i = 0; i < compareLines.size(); i++) v.addElement(compareLines.elementAt(i));
+        long sumG = 0, sumM = 0;
+        int both = 0, winsG = 0, winsM = 0;
+        boolean anyG = false, anyM = false;
+        for (int i = 0; i < COMPARE_NAMES.length; i++) {
+            int g = compareMs[0][i], m = compareMs[1][i];
+            anyG |= g > 0; anyM |= m > 0;
+            if (g <= 0 || m <= 0) continue;
+            both++; sumG += g; sumM += m;
+            String who;
+            if (g * 100 >= m * COMPARE_MARGIN) { winsM++; who = "Mascot " + times(g * 100 / m) + " mas rapido"; }
+            else if (m * 100 >= g * COMPARE_MARGIN) { winsG++; who = "M3G " + times(m * 100 / g) + " mas rapido"; }
+            else who = "parecidos";
+            v.addElement("CMP " + COMPARE_NAMES[i] + ": M3G " + ms(g) + ", Mascot " + ms(m) + " -> " + who);
+        }
+        String verdict;
+        if (both == 0) verdict = anyG ? "M3G (Mascot Capsule v3 no disponible o sin datos)" : anyM ? "Mascot Capsule v3 (M3G no disponible o sin datos)" : "sin datos";
+        else if (sumG * 100 >= sumM * COMPARE_MARGIN) verdict = "Mascot Capsule v3, " + times(sumG * 100 / sumM) + " mas rapido en total (gana " + winsM + " de " + both + ")";
+        else if (sumM * 100 >= sumG * COMPARE_MARGIN) verdict = "M3G, " + times(sumM * 100 / sumG) + " mas rapido en total (gana " + winsG + " de " + both + ")";
+        else verdict = "empate (menos de " + (COMPARE_MARGIN - 100) + "% de diferencia): M3G, el estandar";
+        if (quick) verdict += " [fases rapidas de emulador: no vale para un telefono]";
+        compareVerdict = verdict;
+        v.addElement("VEREDICTO para este telefono: " + verdict);
+        return array(v);
+    }
+
+    private static String times(long percent) { return percent / 100 + "." + percent % 100 / 10 + "x"; }
+    private static String ms(int ms10) { return ms10 / 10 + "." + ms10 % 10 + " ms"; }
+
+    /** Called by M3GBench or MascotBench from its own thread when it ends (or by the memory test). The comparison
+     *  calls it once per API: after M3G it starts Mascot, after Mascot it adds the verdict. */
     void benchDone(int b, String[] lines, Display display) {
+        if (b == BENCH_COMPARE) {
+            boolean stopped = false;
+            for (int i = 0; i < lines.length; i++) {
+                compareLines.addElement(lines[i]);
+                if (lines[i].indexOf("etenida por el usuario") >= 0) stopped = true;
+            }
+            if (compareStage == 0 && !stopped) { compareStage = 1; if (compareStart(1)) return; }
+            lines = compareFinish();
+        }
         if (display != null) display.setCurrent(this);
         StringBuffer r = new StringBuffer();
         for (int i = 0; i < lines.length; i++) {
@@ -461,8 +547,10 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
             if (i > 0) r.append(" | ");
             r.append(lines[i]);
         }
-        benchResults[b] = "R" + b + ": " + (lines.length == 0 ? "sin resultados" : r.toString());
+        benchResults[b] = "R" + b + ": " + (b == BENCH_COMPARE && compareVerdict != null ? compareVerdict
+            : lines.length == 0 ? "sin resultados" : r.toString());
         running = null; benchRunning = false; reportCache = null;
+        if (b == BENCH_COMPARE && compareVerdict != null) show("Veredicto: " + compareVerdict);
         if (quickRun && b == BENCH_ALL) {
             quickRun = false;
             add("Prueba rapida terminada: se guarda el informe");
@@ -502,6 +590,7 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
         Vector v = new Vector();
         v.addElement("KISCPORT PROBE " + KiscPortProbe.VERSION);
         v.addElement("platform=" + System.getProperty("microedition.platform"));
+        if (compareVerdict != null) v.addElement("VEREDICTO 3D: " + compareVerdict);
         if (properties != null) for (int i = 1; i < properties.length; i++) if (properties[i].indexOf("=null") < 0) v.addElement(properties[i]);
         Runtime rt = Runtime.getRuntime();
         v.addElement("heap libre/total=" + rt.freeMemory() / 1024 + "/" + rt.totalMemory() / 1024 + " KB");
@@ -781,7 +870,7 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
                     "1. Informacion del telefono: " + (properties != null ? "lista" : "leyendo"),
                     "2. Graficos 3D (unos 70 s): " + (done ? "hecho" : benchRunning ? "en curso" : "en espera"),
                     "3. Informe: " + (saved != null ? saved : "al terminar"), "",
-                    "La pantalla 3D muestra el progreso. Ahi, 0 guarda una captura y cualquier otra tecla detiene la prueba.",
+                    "La pantalla 3D muestra el progreso. Ahi, 0 guarda una captura y * la detiene; las demas teclas no la paran (pulse una para que la pantalla no se apague).",
                     "El sonido se prueba aparte (menu Sonido): necesita que usted escuche."};
             }
             case INFO: return concat(concat(concat(section("TELEFONO", properties), section("APIS PRESENTES", apis)),
@@ -802,6 +891,8 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
             case HELP: return new String[] {"Moverse: joystick arriba/abajo. Elegir: OK o 5. Volver: izquierda o Atras.",
                 "#: captura PNG de la pantalla actual. *: para el sonido.",
                 "Empiece por Prueba rapida. Luego Sonido (responda lo que oyo) y, si acepta el riesgo, Memoria.",
+                "Graficos 3D, 8: mide M3G y Mascot Capsule v3 con las mismas cargas y dice cual conviene en este telefono. 7: todas las pruebas con Mascot.",
+                "Pruebas 3D: 0 captura, * (asterisco) detiene; cualquier otra tecla no hace nada, sirve para que la pantalla no se apague.",
                 "Informe y capturas: OK guarda el informe. Los archivos van a la tarjeta o a la memoria del telefono; puede pedir permiso.",
                 "Las capturas son de KiscPort Probe: Java ME no puede leer la pantalla de otras aplicaciones.",
                 "Envie kiscport-probe.txt y las capturas en un issue de GitHub con el modelo y el firmware.",
@@ -814,7 +905,8 @@ final class ProbeCanvas extends Canvas implements Runnable, CommandListener, Pla
         int lh = font.getHeight(), n = listSize();
         String[] head = null;
         if (screen == VERDICT) head = new String[] {TESTS[verdictTest] + ": que se oyo?"};
-        if (screen == GRAPHICS) head = new String[] {"Cada prueba dibuja 2 s por paso. Resultados tambien en Informe."};
+        if (screen == GRAPHICS) head = compareVerdict != null ? new String[] {"Veredicto: " + compareVerdict}
+            : new String[] {"Cada prueba dibuja 2 s por paso. Resultados tambien en Informe."};
         if (head != null) { g.setColor(MUTED); for (int i = 0; i < head.length; i++) top = wrap(g, head[i], top, w, bottom) + 2; }
         int rows = 2, per = lh * rows + 3, visible = Math.max(1, (bottom - top) / per);
         int first = sel - visible + 1; if (first < 0) first = 0;
