@@ -1,199 +1,235 @@
 # KiscPort Engine 0.9.0
 
-KISC-LABS, 14 de noviembre de 2026. Cómo funciona el motor, qué contiene este repositorio y qué falta.
+KISC-LABS, 14 November 2026. How the engine works, what this repository contains and what is still to come.
 
-## Plataforma
+## Platform
 
-- CLDC 1.1, MIDP 2.0 y JSR-184 (M3G); fuente Java 1.3, bytecode 45.3, preverificación CLDC StackMap.
-- El JDK 17 sólo ejecuta herramientas del PC. `scripts/test.py` rechaza a propósito una compilación que use Java SE.
-- Sin APIs propietarias obligatorias. Mascot Capsule v3 entra sólo como renderer **alpha** opcional de la demo
-  (ver «Mascot Capsule v3 (alpha)»), cargado por nombre. Las diferencias entre teléfonos se detectan por capacidad (`microedition.m3g.version`,
-  clases presentes, respuesta de MMAPI), nunca por el nombre del modelo.
-- Teléfono base: Sony Ericsson W995. W900i (M3G 1.0) se mantiene compatible.
+- CLDC 1.1, MIDP 2.0 and JSR-184 (M3G); Java 1.3 source, bytecode 45.3, CLDC StackMap preverification.
+- JDK 17 only runs PC tools. `scripts/test.py` deliberately rejects a build that uses Java SE.
+- No mandatory proprietary APIs. Mascot Capsule v3 is only an optional **alpha/beta** renderer (see "Mascot
+  Capsule v3 (alpha)"), loaded by name. Differences between phones are detected by capability
+  (`microedition.m3g.version`, classes present, MMAPI answers), never by model name.
+- Base phone: Sony Ericsson W995. The W900i (M3G 1.0) stays compatible.
 
-## Código
+## Code
 
-| Clase | Papel |
+| Class | Role |
 |---|---|
-| `platform/KiscPortMIDlet` | Ciclo de vida: `startApp`, `pauseApp`, `destroyApp`; luz de pantalla sólo para cancelar |
-| `platform/LoopPacer` | Descanso mínimo de 1 ms por cuadro para que el teléfono atienda teclas y ciclo de vida |
-| `platform/BacklightControl`, `BacklightTarget` | Política de luz (desactivada: en el W900i parpadeaba) |
-| `input/InputState` | Teclas mantenidas y pulsaciones acumuladas entre cuadros; `clear()` al pausar u ocultar |
-| `diagnostics/FrameStats`, `Hud` | FPS, tiempo de trabajo y memoria, sin reservar memoria al dibujar |
-| `resources/TextTable` | Lector KTT1 de textos (hasta 32 × 256 caracteres UTF-16) |
-| `ui/StartupIntro` | Intro KISC-LABS escalada en el PC, una sola imagen decodificada |
-| `audio/MidiOut`, `MidiControlOut` | Notas MIDI por `MIDIControl`, cargado por nombre; si falta, `playTone` |
-| `renderer/Strips` | Convierte listas de triángulos en tiras: una por cuadrilátero (QUAD), una por malla o ninguna |
-| `renderer/AssetSection` | Lee tramos de escenario KPS1/KPS3 y sus páginas de textura desde `AssetSection.ROOT` |
-| `renderer/CubeScene` | Escena M3G de la demo |
-| `renderer/MascotCubeScene` | **Alpha**: el mismo cubo con Mascot Capsule v3 (`#` en la demo) |
-| `renderer/MascotSection` | **Beta**: un tramo KPS3 dibujado con Mascot, sin M3G |
-| `demo/DemoCanvas`, `DemoScene` | La demo: bucle, intro, entrada, pausa, textos, FPS y cambio de renderer |
+| `platform/KiscPortMIDlet` | Lifecycle: `startApp`, `pauseApp`, `destroyApp`; backlight only to cancel |
+| `platform/LoopPacer` | At least 1 ms of rest per frame so the phone can handle keys and lifecycle |
+| `platform/BacklightControl`, `BacklightTarget` | Backlight policy (disabled: it flickered on the W900i) |
+| `input/InputState` | Held keys and presses accumulated between frames; `clear()` on pause or hide |
+| `diagnostics/FrameStats`, `Hud` | FPS, work time and memory, with no allocation while drawing |
+| `resources/TextTable` | KTT1 text reader (up to 32 × 256 UTF-16 characters) |
+| `ui/StartupIntro` | KISC-LABS intro scaled on the PC, a single decoded image |
+| `audio/MidiOut`, `MidiControlOut` | MIDI notes through `MIDIControl`, loaded by name; `playTone` if it is missing |
+| `renderer/Strips` | Turns triangle lists into strips: one per quad (QUAD), one per mesh, or none |
+| `renderer/AssetSection` | Reads KPS1/KPS3 stage sections and their texture pages from `AssetSection.ROOT` |
+| `renderer/CubeScene` | The demo's M3G scene |
+| `renderer/MascotCubeScene` | **Alpha**: the same cube with Mascot Capsule v3 (`#` in the demo) |
+| `renderer/MascotSection` | **Beta**: a KPS3 section drawn with Mascot, without M3G |
+| `demo/DemoCanvas`, `DemoScene` | The demo: loop, intro, input, pause, text, FPS and renderer switch |
 
-Reglas que comprueba `scripts/audit.py`: M3G sólo en `kiscport/renderer/`, MMAPI sólo en `kiscport/audio/`,
-`MIDIControl` sólo en `MidiControlOut` y Mascot sólo en `MascotCubeScene` y `MascotSection`, que no pueden usar M3G. Así un teléfono sin esas APIs sigue
-arrancando.
+Rules checked by `scripts/audit.py`: M3G only in `kiscport/renderer/`, MMAPI only in `kiscport/audio/`,
+`MIDIControl` only in `MidiControlOut`, and Mascot only in `MascotCubeScene` and `MascotSection`, which may not use
+M3G. That way a phone without those APIs still starts.
 
 ## Mascot Capsule v3 (alpha)
 
-> **Beta de Mascot para estudio futuro.** Nada de esta sección cambia el renderer de producción (M3G) ni los
-> juegos actuales: es material para evaluar Mascot en un próximo juego.
+> **Mascot beta for future study.** Nothing in this section changes the production renderer (M3G) or current
+> games: it is material for evaluating Mascot in a future game.
 
-Con Probe 1.3.0 (pruebas 7 y 9, mallas sintéticas), el propietario de los teléfonos informó, con fotos del
-Informe, que la API más rápida depende del teléfono: Mascot fue unas 2 veces más rápida que M3G en el W995 y unas
-2 veces más lenta en el W900i. Falta confirmar qué teléfono es cada uno con la línea `platform=` y la prueba 8.
-Antes de decidir si el motor debe tener un renderer Mascot, la demo trae una escena alpha. Es la base: el cambio
-de API dentro del bucle del motor, la construcción y la auditoría. El cubo tiene sólo 12 triángulos, como la fila
-GEO 12 de Probe, así que no decide nada por sí solo: los datos para decidir vendrán de pasar un tramo de
-escenario a Mascot (ver abajo).
+### Why M3G, and why Mascot is being studied
 
-- **Cómo se prueba.** En la demo, `#` cambia el cubo entre M3G y Mascot. Arriba a la derecha se ve
-  `M3G  # Mascot` o `Mascot (alpha)  # M3G`. Al cambiar, las estadísticas vuelven a empezar.
-- **Qué mirar.** El bucle se limita a 30 FPS, así que el FPS casi no distingue las APIs: la cifra que compara es
-  `ms` (trabajo por cuadro) y `max ms`. Anotar las dos con cada API en cada teléfono, y confirmar que el cubo
-  tiene el mismo tamaño, colores y giro que con M3G.
-- **Qué hace.** El mismo cubo que `CubeScene`: seis caras de un color, enviadas como seis `QUADS` en una sola
-  llamada `renderPrimitives`, con borrado por `fillRect`, `bind`, `flush` y `release`, las llamadas que Probe ya
-  usó en los dos teléfonos. Mascot no tiene búfer de profundidad: ordena los polígonos. Su cámara mira hacia +z
-  con y hacia abajo; la escena gira la vista 180° sobre x para que el cubo salga igual que en M3G, sin reflejo.
-- **Si falta Mascot**, la demo dice «Mascot no disponible» y sigue con M3G. Si falta M3G, `#` sigue mostrando el
-  cubo con Mascot (comprobado en el emulador sin M3G).
-- **Evidencia.** Probado en PC y en FreeJ2ME-Plus, cuya Mascot es una reimplementación en Java: eso no dice nada
-  del rendimiento ni del aspecto en un teléfono. Sin prueba en teléfono todavía. Que la clase no se enlace si
-  falta la API se comprueba con la auditoría estática, no en el emulador, que no arranca sin Mascot.
+Many Sony Ericsson phones ship two 3D APIs: the standard **M3G** (JSR-184) and **Mascot Capsule Micro3D v3**, HI
+Corporation's proprietary API. Mascot is often said to be faster and closer to the PlayStation look (paletted
+textures, sorted polygons, the "wobbly" polygons). Instead of answering from memory, KiscPort Probe 1.3.0 drew the
+same synthetic scenes with both APIs (tests 7 and 9: same mesh, same screen area, same turn, same measuring
+window) on the project's two phones. Frames per second of the whole frame, reported by the phones' owner from
+photos of the Probe report:
 
-**Cuándo valdría la pena moverse.** Un renderer Mascot completo sólo tiene sentido si, en el teléfono base
-(W995), con escenas del motor y no sólo el cubo, gana con claridad en `ms` y el contenido acepta sus límites: un
-color por cara o su propia iluminación, texturas BMP de 8 bits (256 colores) de hasta 256 px, mezclas al 50 %,
-suma o resta, y orden de polígonos en lugar de profundidad por píxel. M3G sigue siendo el renderer de producción y
-la ruta compatible con el W900i. Siguiente paso si el cubo confirma la ventaja: pasar un tramo de escenario
-(`AssetSection`) a Mascot y medirlo con Probe en los dos teléfonos.
+| Load | W995 M3G | W995 Mascot | W900i M3G | W900i Mascot |
+| --- | ---: | ---: | ---: | ---: |
+| 768 triangles | 27.6 | 49.0 | 52.9 | 29.4 |
+| 3,072 triangles | 10.7 | 21.4 | 22.4 | 10.9 |
+| 384 triangles, 16 px texture | 30.6 | 54.6 | 62.8 | 33.6 |
+| 384 triangles, 256 px texture | 25.9 | 50.0 | 62.5 | not measured |
+| Screen filled 8 times | 7.7 | 21.5 | 51.0 | not measured |
 
-### Herramientas beta para el siguiente juego
+**The faster API depends on the phone.** Mascot was about 2× faster than M3G on the W995 and about 2× slower on
+the W900i. A likely reason, suggested by a member of the community and not verified by us: the W900i has an
+NVIDIA GoForce 4800 GPU that accelerates M3G, which Mascot does not use. It fits the data: on the W900i, M3G fills
+a full-screen layer in about 1 ms, against about 14 ms on the W995. Which phone is which still has to be
+confirmed with Probe's `platform=` line and test 8, which measures both APIs and gives a verdict on each phone.
 
-Tres piezas para probar Mascot con contenido real, sin formatos propietarios: usan los mismos tramos KPS3 que
-`AssetSection` y nada de HI Corporation. No hay exportadores a `.mbac` ni `.mtra`, ni dependencia de su SDK.
+**Why production stays on M3G.** Speed is not the only requirement. The first experiment demands pixel-exact
+fidelity with its M3G build, and its converted assets use four things Mascot v3 does not offer:
 
-1. **Comprobador:** `python3 scripts/mascot.py check carpeta_del_nivel`. Lee `chunkN.kps` y `stage_N.png` y da un
-   veredicto (`CABE`, `CABE CON PERDIDAS` o `NO CABE`). Separa los límites de la API de lo que va más allá de lo
-   medido en los teléfonos. Por tramo cuenta:
-   - triángulos y llamadas a `renderPrimitives` (255 como máximo por llamada);
-   - memoria expandida (64 bytes por triángulo);
-   - triángulos cuyo color de vértice se pierde: Mascot no multiplica la textura por el color, así que se pierden
-     la modulación y el Gouraud;
-   - coordenadas de textura fuera de la página.
+| The content uses | Mascot Micro3D v3 offers |
+| --- | --- |
+| Texture multiplied by each vertex's colour (Gouraud-shaded textured polygons) | One colour per face, or its own lighting |
+| Partial alpha (for example 64 and 102 out of 255) | Opaque, 50 %, add or subtract, per polygon |
+| Texture pages with more than 256 colours (up to 1,108) | 8-bit indexed BMP: 256 colours per texture |
+| Per-pixel depth | Polygon sorting, no depth buffer |
 
-   Por página: colores, alfa parcial y tamaño.
-2. **Conversor de texturas:** `python3 scripts/mascot.py texture pagina.png pagina.bmp`. Genera un BMP de 8 bits
-   con el formato que Probe ya usó en los dos teléfonos. Si la página tiene 256 colores o menos, la paleta es
-   exacta; si tiene más, una reducción determinista avisa del error RMS.
-   - El alfa menor que 128 (el umbral de M3G) pasa a un *colour key*: la entrada 0 de la paleta es magenta FF00FF
-     y sólo existe en las páginas que lo necesitan.
-   - El alfa parcial se avisa como pérdida.
-   - Más de 256 px no cabe.
-3. **Renderer de tramos:** `kiscport.renderer.MascotSection`. Dibuja un tramo KPS3 con páginas `stage_N.bmp`.
-   - No usa `AssetSection` ni M3G (lo comprueba la auditoría), así que funciona en un teléfono sin JSR-184. Se
-     carga por nombre y sus métodos públicos sólo usan enteros y `Graphics`.
-   - Uso: `loadPages()` por nivel; `new MascotSection(n)` por tramo; en cada cuadro `view(...)`, `begin(g)`,
-     `draw()` de todos los tramos visibles y `end(g)`. Mascot ordena los polígonos dentro de un mismo
-     `begin`/`end`, así que todos los tramos de un cuadro van juntos.
-   - Todavía no tiene intervalos de visibilidad ni carga por pasos: el constructor lee el tramo entero.
+For a new game whose art accepts those limits, Mascot is a valid choice, and on phones like the W995 it may be the
+faster one. That is why the engine keeps M3G for production and adds Mascot as an alpha and beta to study.
 
-**Qué está comprobado.** En PC, el conversor y el comprobador. En FreeJ2ME-Plus, cuya Mascot es una
-reimplementación, con un nivel sintético:
-- `MascotSection` lee los mismos triángulos que `AssetSection`;
-- la textura no sale volteada;
-- el colour key deja ver el fondo;
-- un vértice rojo no tiñe la textura (la pérdida esperada).
+### The demo alpha
 
-Con los tramos del primer experimento (no incluidos aquí), el comprobador marcó dos cosas que hay que mirar en el
-teléfono:
-- coordenadas de hasta ±12284, cuando lo medido llega a ±2600;
-- entre 86 y 432 triángulos por tramo con un color de vértice que Mascot no aplica.
+Before deciding whether the engine should have a Mascot renderer, the demo has an alpha scene. It is the
+groundwork: switching API inside the engine loop, the build and the audit. The cube has only 12 triangles, like
+Probe's GEO 12 row, so it decides nothing by itself; the data for deciding will come from drawing a stage section
+with Mascot (see below).
 
-**Qué hay que comprobar en el teléfono (W995 y W900i) con el siguiente juego:**
-- que el colour key (`PATTR_COLORKEY` = 0x10, valor tomado de FreeJ2ME) recorte de verdad;
-- si `renderPrimitives` dibuja las dos caras (FreeJ2ME no descarta caras traseras);
-- el recorte de polígonos que cruzan el plano cercano;
-- la precisión con coordenadas grandes;
-- `ms` con cargas por encima de 768 y 3072 triángulos;
-- páginas que no son cuadradas;
-- el tiempo de carga del constructor y la memoria real frente a la estimada.
+- **How to test it.** In the demo, `#` switches the cube between M3G and Mascot. The top right shows
+  `M3G  # Mascot` or `Mascot (alpha)  # M3G`. Statistics restart on every switch.
+- **What to look at.** The loop is capped at 30 FPS, so FPS barely tells the APIs apart: compare `ms` (work per
+  frame) and `max ms`. Note both with each API on each phone, and check that the cube has the same size, colours
+  and turn as with M3G.
+- **What it does.** The same cube as `CubeScene`: six one-colour faces sent as six `QUADS` in a single
+  `renderPrimitives` call, with a `fillRect` clear, `bind`, `flush` and `release`: the calls Probe already ran on
+  both phones. Mascot has no depth buffer: it sorts polygons. Its camera looks down +z with y pointing down the
+  screen; the scene turns the view 180° about x so the cube looks the same as in M3G, without mirroring.
+- **If Mascot is missing**, the demo says "Mascot no disponible" and keeps M3G. If M3G is missing, `#` still shows
+  the cube with Mascot (checked in the emulator without M3G).
+- **Evidence.** Tested on PC and in FreeJ2ME-Plus, whose Mascot is a Java reimplementation: that says nothing about
+  speed or looks on a phone. No phone run yet. That the class is not linked when the API is missing is checked by
+  the static audit, not in the emulator, which cannot start without Mascot.
 
-## Cómo corre un cuadro
+**When moving would pay off.** A full Mascot renderer only makes sense if, on the base phone (W995), with engine
+scenes and not just the cube, it clearly wins in `ms` and the content accepts its limits: one colour per face or
+its own lighting, 8-bit BMP textures (256 colours) up to 256 px, 50 %, add or subtract blending, and polygon
+sorting instead of per-pixel depth. M3G remains the production renderer and the compatible path for the W900i.
+Next step if the cube confirms the advantage: move a stage section (`AssetSection`) to Mascot and measure it with
+Probe on both phones.
+
+### Beta tools for the next game
+
+Three pieces to try Mascot with real content, without proprietary formats: they use the same KPS3 sections as
+`AssetSection` and nothing from HI Corporation. There are no `.mbac` or `.mtra` exporters and no dependency on its
+SDK.
+
+1. **Checker:** `python3 scripts/mascot.py check level_folder`. Reads `chunkN.kps` and `stage_N.png` and gives a
+   verdict (`CABE` = fits, `CABE CON PERDIDAS` = fits with losses, or `NO CABE` = does not fit). It separates the
+   API's limits from what goes beyond what was measured on the phones. Per section it counts:
+   - triangles and `renderPrimitives` calls (at most 255 per call);
+   - expanded memory (64 bytes per triangle);
+   - triangles whose vertex colour is lost: Mascot does not multiply the texture by the colour, so modulation and
+     Gouraud shading are lost;
+   - texture coordinates outside the page.
+
+   Per page: colours, partial alpha and size.
+2. **Texture converter:** `python3 scripts/mascot.py texture page.png page.bmp`. Writes an 8-bit BMP in the layout
+   Probe already used on both phones. With 256 colours or fewer the palette is exact; with more, a deterministic
+   reduction reports the RMS error.
+   - Alpha below 128 (M3G's threshold) becomes a *colour key*: palette entry 0 is magenta FF00FF, and only pages
+     that need it have one.
+   - Partial alpha is reported as a loss.
+   - More than 256 px does not fit.
+3. **Section renderer:** `kiscport.renderer.MascotSection`. Draws a KPS3 section with `stage_N.bmp` pages.
+   - It does not use `AssetSection` or M3G (the audit checks this), so it works on a phone without JSR-184. It is
+     loaded by name and its public methods use only integers and `Graphics`.
+   - Use: `loadPages()` per level; `new MascotSection(n)` per section; every frame `view(...)`, `begin(g)`,
+     `draw()` for every visible section and `end(g)`. Mascot sorts polygons within one `begin`/`end`, so all
+     sections of a frame go together.
+   - No visibility intervals or step-by-step loading yet: the constructor reads the whole section.
+
+**What is verified.** On PC, the converter and the checker. In FreeJ2ME-Plus, whose Mascot is a
+reimplementation, with a synthetic level:
+- `MascotSection` reads the same triangles as `AssetSection`;
+- the texture is not flipped;
+- the colour key shows the background;
+- a red vertex does not tint the texture (the expected loss).
+
+On the first experiment's sections (not included here), the checker flagged two things to look at on the phone:
+- coordinates up to ±12284, while the measured range reaches ±2600;
+- between 86 and 432 triangles per section with a vertex colour that Mascot does not apply.
+
+**What to check on the phone (W995 and W900i) with the next game:**
+- that the colour key (`PATTR_COLORKEY` = 0x10, value taken from FreeJ2ME) really cuts out;
+- whether `renderPrimitives` draws both faces (FreeJ2ME does not cull back faces);
+- clipping of polygons that cross the near plane;
+- precision with large coordinates;
+- `ms` with loads above 768 and 3072 triangles;
+- pages that are not square;
+- the constructor's loading time and real memory against the estimate.
+
+## How a frame runs
 
 ```
 KiscPortMIDlet.startApp → DemoCanvas.run
-  ┌─ entrada: InputState.consume() (mantenidas + pulsaciones desde el último cuadro)
-  ├─ simulación: el tiempo transcurrido en pasos enteros de 20 ms (máx. 250 ms por cuadro)
-  ├─ dibujo: escena M3G + capa 2D (FPS, textos)
+  ┌─ input: InputState.consume() (held + presses since the last frame)
+  ├─ simulation: elapsed time in whole 20 ms steps (at most 250 ms per frame)
+  ├─ drawing: M3G scene + 2D layer (FPS, text)
   ├─ flushGraphics
-  └─ LoopPacer (≥ 1 ms de descanso)
+  └─ LoopPacer (≥ 1 ms of rest)
 ```
 
-La simulación avanza en pasos fijos, así que el FPS no cambia el resultado: la demo gira igual a 10 que a 30 FPS,
-y las pruebas pueden contar pasos. Al pausar u ocultar la aplicación se limpia la entrada, para que ninguna tecla
-quede pegada al volver.
+The simulation advances in fixed steps, so FPS does not change the result: the demo turns the same at 10 as at
+30 FPS, and tests can count steps. Pausing or hiding the app clears the input, so no key stays stuck on return.
 
-## Formatos
+## Formats
 
-Todos son big-endian, empiezan por un magic de 4 bytes y una versión, y el lector rechaza variantes desconocidas.
+All are big-endian, start with a 4-byte magic and a version, and the reader rejects unknown variants.
 
-| Formato | Contenido | Lector en este repositorio |
+| Format | Content | Reader in this repository |
 |---|---|---|
-| KPS1 / KPS3 | Malla con UV y colores; KPS3 = tramo de escenario por partes con páginas de textura compartidas | `AssetSection` |
-| KTT1 | Textos UTF-16 | `TextTable` (codificador: `scripts/prepare_text.py`) |
-| KPV1 | Por triángulo, en qué intervalos de cámara puede verse | Pendiente de incorporar |
-| KPW2 | Mundo: recorrido, colisiones, objetos y móviles | Pendiente de incorporar |
-| KPO1, KPC1, KPM1, KPU1 | Catálogo de objetos, personaje con huesos, modelo iluminado, piezas 2D | Pendientes de incorporar |
+| KPS1 / KPS3 | Mesh with UVs and colours; KPS3 = stage section in parts with shared texture pages | `AssetSection` (M3G), `MascotSection` (Mascot, beta) |
+| KTT1 | UTF-16 text | `TextTable` (encoder: `scripts/prepare_text.py`) |
+| KPV1 | Per triangle, in which camera intervals it can be seen | To be added |
+| KPW2 | World: path, collisions, objects and movers | To be added |
+| KPO1, KPC1, KPM1, KPU1 | Object catalogue, skinned character, lit model, 2D pieces | To be added |
 
-Los formatos pendientes existen y están probados en el primer experimento, pero sus lectores todavía mezclan reglas
-de ese juego. Entrarán aquí cuando estén separados (ver «Qué falta»).
+The pending formats exist and are tested in the first experiment, but their readers still mix in that game's
+rules. They will come here once they are separated (see "What is missing").
 
-## Memoria
+## Memory
 
-- Geometría en tiras QUAD (`Strips`): muchas menos llamadas al driver que una tira por triángulo.
-- Tramos de escenario que se leen por pasos (`AssetSection`), repartiendo la carga en varios cuadros.
-- **Pendientes de incorporar** (existen en el primer experimento, mezclados con su juego): el gestor que mantiene
-  dos tramos residentes y prepara el siguiente, y la visibilidad precalculada en el PC (KPV1).
-- No se fuerza el recolector de basura por cuadro. Antes de cambiar una política de memoria, medir en el
-  teléfono con Probe.
-- **Lección del W900i (M3G 1.0), noviembre de 2026.** En el primer experimento, al cambiar un conjunto de objetos
-  por otro, la construcción del siguiente lanzaba `OutOfMemoryError` y la sesión terminaba. La corrección se
-  aplicará al gestor cuando entre aquí:
-  1. Soltar las referencias del conjunto anterior antes de construir el siguiente (ruta normal, sin cambios).
-  2. Sólo si esa construcción falla: abandonar la precarga pendiente y las vistas por intervalo opcionales de los
-     tramos residentes (`AssetSection.views`; sin ellas el tramo se dibuja entero), pedir una recolección y
-     **reintentar una vez**. Si vuelve a fallar, terminar con un mensaje que diga la fase (conjunto, tramo, dibujo).
+- Geometry in QUAD strips (`Strips`): far fewer driver calls than one strip per triangle.
+- Stage sections read in steps (`AssetSection`), spreading the load over several frames.
+- **To be added** (they exist in the first experiment, mixed with its game): the manager that keeps two sections
+  resident and prepares the next one, and visibility precomputed on the PC (KPV1).
+- The garbage collector is not forced every frame. Before changing a memory policy, measure on the phone with
+  Probe.
+- **W900i lesson (M3G 1.0), November 2026.** In the first experiment, when one object set was replaced by
+  another, building the next one threw `OutOfMemoryError` and the session ended. The fix will be applied to the
+  manager when it comes here:
+  1. Drop the references to the previous set before building the next one (normal path, unchanged).
+  2. Only if that build fails: abandon the pending preload and the optional per-interval views of the resident
+     sections (`AssetSection.views`; without them the section is drawn whole), request a collection and **retry
+     once**. If it fails again, stop with a message that names the phase (set, section, drawing).
 
-  Es una ruta de recuperación que se activa por el fallo, no por el modelo de teléfono, y no cambia la regla de no
-  recolectar por cuadro. Puede causar una pausa breve al cambiar de conjunto. Alcance de la evidencia: el
-  propietario del teléfono superó en un W900i el punto que antes fallaba. No hubo sesión larga ni medida de FPS,
-  ningún contador confirma que la recuperación se activara, FreeJ2ME no reproduce la memoria M3G del W900i y ese
-  binario no se volvió a probar en el W995.
+  It is a recovery path triggered by the failure, not by the phone model, and it does not change the rule of not
+  collecting every frame. It can cause a short pause when switching sets. Scope of the evidence: the phone's owner
+  got past the point that used to fail on a W900i. There was no long session or FPS measurement, no counter
+  confirms that the recovery ran, FreeJ2ME does not reproduce the W900i's M3G memory, and that build was not
+  retested on the W995.
 
-## Construcción, pruebas y evidencia
+## Build, tests and evidence
 
-| Comando | Qué hace | Valida en |
+| Command | What it does | Validates on |
 |---|---|---|
-| `scripts/bootstrap.py` | Descarga herramientas fijadas por SHA-256 y prepara el emulador | PC |
-| `scripts/prepare_intro.py`, `make_intro_sound.py` | Receta de los recursos de marca (`assets/intro/`); no se volvió a ejecutar para 0.8.0, sus salidas están versionadas con hash | PC |
-| `scripts/build.py` | JAR de la demo; verifica metadatos, StackMap y dependencias | PC |
-| `scripts/test.py` | FrameStats, luz, tiras, textos, auditoría CLDC, compilación negativa, herramientas Mascot | PC |
-| `scripts/smoke.py` (`absent`) | La demo con y sin M3G, el cubo Mascot alpha (`#`) y, sin `absent`, `MascotSection` | Emulador |
-| `scripts/mascot.py` (`texture`, `check`) | **Beta**: páginas a BMP de 8 bits y si un nivel cabe en Mascot | PC |
-| `scripts/reproducibility.py` | Dos construcciones idénticas | PC |
-| `scripts/build_probe.py`, `smoke_probe.py` | KiscPort Probe | PC / emulador |
-| Probe en el teléfono | Capacidades y rendimiento reales | **Teléfono** |
+| `scripts/bootstrap.py` | Downloads tools pinned by SHA-256 and prepares the emulator | PC |
+| `scripts/prepare_intro.py`, `make_intro_sound.py` | Recipe for the brand assets (`assets/intro/`); not rerun for 0.8.0, its outputs are versioned with hashes | PC |
+| `scripts/build.py` | Demo JAR; checks metadata, StackMap and dependencies | PC |
+| `scripts/test.py` | FrameStats, backlight, strips, text, CLDC audit, negative compile, Mascot tools | PC |
+| `scripts/smoke.py` (`absent`) | The demo with and without M3G, the Mascot alpha cube (`#`) and, without `absent`, `MascotSection` | Emulator |
+| `scripts/mascot.py` (`texture`, `check`) | **Beta**: pages to 8-bit BMP, and whether a level fits Mascot | PC |
+| `scripts/reproducibility.py` | Two identical builds | PC |
+| `scripts/build_probe.py`, `smoke_probe.py` | KiscPort Probe | PC / emulator |
+| Probe on the phone | Real capabilities and performance | **Phone** |
 
-## Qué falta
+## What is missing
 
-1. **Separar e incorporar** el resto del motor del primer experimento: lector de mundo KPW2, renderer de
-   escenario con visibilidad, personajes con huesos (KPC), catálogo de objetos por zonas y gestión de audio. Cada
-   pieza entra aquí sólo sin reglas ni nombres de ningún juego. El gestor de tramos y del catálogo de objetos
-   debe llegar con la recuperación ante `OutOfMemoryError` y los mensajes por fase descritos en «Memoria».
-2. **Perfiles de dispositivo** construidos con los informes de Probe: memoria utilizable, triángulos por cuadro,
-   textura segura y coste de tiras, relleno y skinning. Probe mide hoy el montón Java; falta medir la memoria M3G
-   creando y soltando mallas y texturas como al cambiar de tramo o de conjunto, que es lo que falló en el W900i.
-3. **Comprobador de viabilidad**: cruzar lo que necesita un contenido con un perfil y decir si cabe y con qué límites.
-4. **Importadores de formatos abiertos**: glTF a KPC/KPM/KPO, PNG a atlas, nivel JSON a KPW2 y KPV1.
+1. **Separate and bring in** the rest of the first experiment's engine: KPW2 world reader, stage renderer with
+   visibility, skinned characters (KPC), object catalogue by zones, and audio management. Each piece comes here
+   only without any game's rules or names. The section and object-catalogue manager must come with the
+   `OutOfMemoryError` recovery and the per-phase messages described in "Memory".
+2. **Device profiles** built from Probe reports: usable memory, triangles per frame, safe texture size, and the
+   cost of strips, fill and skinning. Probe measures the Java heap today; M3G memory still has to be measured by
+   creating and dropping meshes and textures as when switching sections or sets, which is what failed on the
+   W900i.
+3. **Feasibility checker**: match what a piece of content needs against a profile and say whether it fits and
+   within which limits. (`scripts/mascot.py check` is a first, Mascot-only beta of this idea.)
+4. **Importers for open formats**: glTF to KPC/KPM/KPO, PNG to atlas, JSON level to KPW2 and KPV1.

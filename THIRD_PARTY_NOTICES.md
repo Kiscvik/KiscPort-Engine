@@ -1,19 +1,19 @@
-# Herramientas y procedencia
+# Tools and provenance
 
-El MIDlet de `dist/` contiene sólo clases `kiscport.*`, su manifiesto, los PNG y el sonido de marca KISC-LABS (`assets/intro/`, hashes en `assets/intro/conversion.json`) y la tabla de textos de la demo, generada en cada construcción desde `assets/demo/text.json`. No incorpora implementaciones de FreeJ2ME-Plus, MicroEmulator, Sony Ericsson, Oracle ni Nvidia. Este repositorio no contiene imágenes de disco, datos ni recursos de ningún juego comercial.
+The MIDlet in `dist/` contains only `kiscport.*` classes, its manifest, the KISC-LABS brand PNGs and sound (`assets/intro/`, hashes in `assets/intro/conversion.json`) and the demo's text table, generated on every build from `assets/demo/text.json`. It does not include implementations from FreeJ2ME-Plus, MicroEmulator, Sony Ericsson, Oracle or Nvidia. This repository contains no disc images, data or assets from any commercial game.
 
-Las dependencias descargadas de desarrollo están en `tools/`, excluidas de Git. `tools/dependencies.lock.json` (URL, versión y SHA256 de cada descarga) y `tools/emulator.commit` sí se versionan. El bootstrap no cambia la instalación global de Java.
+Downloaded development dependencies live in `tools/`, excluded from Git. `tools/dependencies.lock.json` (URL, version and SHA256 of each download) and `tools/emulator.commit` are versioned. The bootstrap does not change the global Java installation.
 
-| Componente | Uso | Procedencia/licencia |
+| Component | Use | Provenance/licence |
 | --- | --- | --- |
-| Eclipse Temurin 17.0.21+9, macOS ARM64 | Ejecutar compilador, preverificador y emulador | [Adoptium](https://github.com/adoptium/temurin17-binaries/releases/tag/jdk-17.0.21%2B9), OpenJDK GPLv2 con Classpath Exception y avisos incluidos en la distribución |
-| ECJ 3.26.0 | Compilar lenguaje 1.3 y destino 1.1 | [Eclipse JDT](https://www.eclipse.org/jdt/), EPL-2.0; jar de Maven Central |
-| ProGuard base 6.2.2 | Preverification `-microedition` | [Guardsquare](https://github.com/Guardsquare/proguard/tree/v6.2.2), GPLv2; jar de Maven Central |
-| MicroEmulator cldcapi11/midpapi20 2.0.4 | Boot classpath de compilación; no runtime del MIDlet | [MicroEmulator](https://github.com/barteo/microemu), licencias/avisos de los artefactos originales, LGPL; jars de Maven Central |
-| FreeJ2ME-Plus, commit 677d41b60e2cee4d7084055bc5b4152b2bc60ecb | Emulación real y biblioteca de símbolos M3G de compilación | [Código fuente fijado](https://github.com/TASEmulators/freej2me-plus/tree/677d41b60e2cee4d7084055bc5b4152b2bc60ecb), GPLv3 y avisos por archivo; licencia en tools/emulator/LICENSE |
+| Eclipse Temurin 17.0.21+9, macOS ARM64 | Run the compiler, preverifier and emulator | [Adoptium](https://github.com/adoptium/temurin17-binaries/releases/tag/jdk-17.0.21%2B9), OpenJDK GPLv2 with Classpath Exception and notices included in the distribution |
+| ECJ 3.26.0 | Compile Java 1.3 source to 1.1 target | [Eclipse JDT](https://www.eclipse.org/jdt/), EPL-2.0; jar from Maven Central |
+| ProGuard base 6.2.2 | `-microedition` preverification | [Guardsquare](https://github.com/Guardsquare/proguard/tree/v6.2.2), GPLv2; jar from Maven Central |
+| MicroEmulator cldcapi11/midpapi20 2.0.4 | Compile boot classpath; not the MIDlet's runtime | [MicroEmulator](https://github.com/barteo/microemu), licences/notices of the original artefacts, LGPL; jars from Maven Central |
+| FreeJ2ME-Plus, commit 677d41b60e2cee4d7084055bc5b4152b2bc60ecb | Real emulation and M3G compile symbol library | [Pinned source code](https://github.com/TASEmulators/freej2me-plus/tree/677d41b60e2cee4d7084055bc5b4152b2bc60ecb), GPLv3 and per-file notices; licence in tools/emulator/LICENSE |
 
-El código de KiscPort invoca las APIs del dispositivo; no implementa esas APIs.
+KiscPort code calls the device's APIs; it does not implement those APIs.
 
-Para compartir las herramientas con terceros, conservar sus licencias y el código fuente correspondiente; no empaquetarlas como parte del JAR del teléfono. El bootstrap permite obtenerlas de sus fuentes. `M3G_API_JAR` admite sustituir la biblioteca de compilación por un jsr184.jar de un SDK legítimamente instalado; sus condiciones de distribución siguen siendo las del proveedor.
+To share the tools with others, keep their licences and the corresponding source code; do not package them as part of the phone JAR. The bootstrap can fetch them from their sources. `M3G_API_JAR` lets you replace the compile library with a jsr184.jar from a legitimately installed SDK; its distribution terms remain the vendor's.
 
-KiscPort Probe (`probe/`, antes diagnóstico MMAPI) compila contra stubs escritos para este proyecto con las firmas públicas de JSR-135 `MIDIControl`, de un subconjunto de JSR-239, de JSR-75 `FileConnection` y de las llamadas básicas de Mascot Capsule Micro3D v3 (`com.mascotcapsule.micro3d.v3`); sólo se usan como boot classpath y no se empaquetan. La demo usa los de `MIDIControl` y Mascot del mismo modo. No contienen código de HI Corporation ni de Sony Ericsson; en el teléfono se enlazan las clases reales del dispositivo. Sus sonidos son sintéticos, generados por `scripts/make_probe_sounds.py`.
+KiscPort Probe (`probe/`, formerly the MMAPI diagnostic) compiles against stubs written for this project with the public signatures of JSR-135 `MIDIControl`, a subset of JSR-239, JSR-75 `FileConnection` and the basic calls of Mascot Capsule Micro3D v3 (`com.mascotcapsule.micro3d.v3`); they are used only as the boot classpath and are not packaged. The demo uses the `MIDIControl` and Mascot ones the same way. They contain no code from HI Corporation or Sony Ericsson; on the phone, the device's real classes are linked. Probe's sounds are synthetic, generated by `scripts/make_probe_sounds.py`.

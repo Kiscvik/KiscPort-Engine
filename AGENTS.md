@@ -1,17 +1,20 @@
 # KiscPort Engine
 
-Repositorio público de KISC-LABS. El nombre es **KiscPort** (no "Kisport").
+Public KISC-LABS repository. The name is **KiscPort** (not "Kisport").
 
-El artefacto del teléfono usa CLDC 1.1, MIDP 2.0 y JSR-184; lenguaje Java 1.3 y bytecode 45.3. El JDK moderno es
-exclusivamente una herramienta del PC. No agregar bibliotecas Java SE ni implementaciones javax/java al JAR del
-teléfono. Mantener la preverificación CLDC StackMap. Las APIs opcionales (M3G, MIDIControl, JSR-75, JSR-239,
-Mascot Capsule v3) se cargan por nombre para que su ausencia sólo afecte a esa parte.
+The phone artefact uses CLDC 1.1, MIDP 2.0 and JSR-184; Java 1.3 language and bytecode 45.3. The modern JDK is only
+a PC tool. Do not add Java SE libraries or javax/java implementations to the phone JAR. Keep CLDC StackMap
+preverification. Optional APIs (M3G, MIDIControl, JSR-75, JSR-239, Mascot Capsule v3) are loaded by name so that
+their absence only affects that part.
 
-Construcción: `python3 scripts/build.py`. Pruebas: `python3 scripts/test.py`, `python3 scripts/smoke.py` y
-`python3 scripts/smoke.py absent`. Probe: `python3 scripts/build_probe.py` y `python3 scripts/smoke_probe.py`.
-Reproducibilidad: `python3 scripts/reproducibility.py`. No ejecutar a la vez dos construcciones que escriban en `dist/`.
+Build: `python3 scripts/build.py`. Tests: `python3 scripts/test.py`, `python3 scripts/smoke.py` and
+`python3 scripts/smoke.py absent`. Probe: `python3 scripts/build_probe.py` and `python3 scripts/smoke_probe.py`.
+Reproducibility: `python3 scripts/reproducibility.py`. Never run two builds that write to `dist/` at the same time.
 
-Nunca versionar imágenes de disco, datos ni recursos de juegos comerciales, ni nombres o textos de juegos de
-terceros. Los juegos concretos viven en sus propios repositorios, fuera de este. Mantener versiones y hashes de
-herramientas. Distinguir siempre PC, emulador y teléfono: un resultado de FreeJ2ME no es una medida de hardware.
-W995 es el teléfono base; W900i (M3G 1.0) se mantiene compatible.
+Never version disc images, data or assets from commercial games, nor names or texts of third-party games. Specific
+games live in their own repositories, outside this one. Keep tool versions and hashes. Always distinguish PC,
+emulator and phone: a FreeJ2ME result is not a hardware measurement. The W995 is the base phone; the W900i (M3G
+1.0) stays compatible.
+
+Documentation is in English; only the README exists in both languages (`README.md` in English, `README.es.md` in
+Spanish), and the two must say the same thing. Probe's and the demo's on-screen text stay in Spanish.
