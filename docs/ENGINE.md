@@ -35,10 +35,13 @@ arrancando.
 
 ## Mascot Capsule v3 (alpha)
 
-Probe midió en los dos teléfonos del proyecto que la API más rápida depende del teléfono: con mallas sintéticas,
-Mascot fue unas 2 veces más rápida que M3G en el W995 y unas 2 veces más lenta en el W900i. Antes de decidir si
-el motor debe tener un renderer Mascot, la demo trae una escena alpha para probarlo con algo del motor y no sólo
-con pruebas sintéticas.
+Con Probe 1.3.0 (pruebas 7 y 9, mallas sintéticas), el propietario de los teléfonos informó, con fotos del
+Informe, que la API más rápida depende del teléfono: Mascot fue unas 2 veces más rápida que M3G en el W995 y unas
+2 veces más lenta en el W900i. Falta confirmar qué teléfono es cada uno con la línea `platform=` y la prueba 8.
+Antes de decidir si el motor debe tener un renderer Mascot, la demo trae una escena alpha. Es la base: el cambio
+de API dentro del bucle del motor, la construcción y la auditoría. El cubo tiene sólo 12 triángulos, como la fila
+GEO 12 de Probe, así que no decide nada por sí solo: los datos para decidir vendrán de pasar un tramo de
+escenario a Mascot (ver abajo).
 
 - **Cómo se prueba.** En la demo, `#` cambia el cubo entre M3G y Mascot. Arriba a la derecha se ve
   `M3G  # Mascot` o `Mascot (alpha)  # M3G`. Al cambiar, las estadísticas vuelven a empezar.

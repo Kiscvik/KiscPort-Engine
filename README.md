@@ -93,9 +93,9 @@ Las herramientas que descarga `bootstrap.py` tienen sus propias licencias y no s
 FreeJ2ME-Plus; pendiente su prueba en teléfonos. Lo siguiente está en [docs/ENGINE.md](docs/ENGINE.md#qué-falta).
 
 **0.9.0** (14 de noviembre de 2026): **Mascot Capsule v3 en alpha.** En la demo, `#` cambia el cubo entre M3G y
-Mascot, para comparar en el teléfono el `ms` por cuadro de cada API con algo del motor. M3G sigue siendo el renderer
-de producción. Probado en PC y FreeJ2ME-Plus (su Mascot es una reimplementación); pendiente en teléfonos. Detalles
-y criterio para decidir en [docs/ENGINE.md](docs/ENGINE.md#mascot-capsule-v3-alpha).
+Mascot dentro del bucle del motor: es la base para probar un renderer Mascot, no una medida (el cubo tiene 12
+triángulos). M3G sigue siendo el renderer de producción. Probado en PC y FreeJ2ME-Plus (su Mascot es una
+reimplementación); pendiente en teléfonos. Detalles y criterio para decidir en [docs/ENGINE.md](docs/ENGINE.md#mascot-capsule-v3-alpha).
 
 **Probe 1.4.0** (14 de noviembre de 2026): añade Mascot Capsule v3 (prueba 7), una comparación con M3G que dice
 cuál conviene en cada teléfono (prueba 8), y en las pruebas 3D sólo `*` las detiene: otra tecla mantiene la
