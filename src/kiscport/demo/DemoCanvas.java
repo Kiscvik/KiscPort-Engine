@@ -13,18 +13,23 @@ import kiscport.resources.TextTable;
 import kiscport.ui.StartupIntro;
 
 /** Engine demo: KISC-LABS intro, then a colour cube (M3G, loaded by name) turned with the joystick, a caption
- *  from a KTT1 text table and the FPS overlay. Loop: input -> fixed 20 ms steps -> draw -> flush -> rest. Input is
+ *  from a KTT1 text table and the FPS overlay. # switches the cube to the Mascot Capsule v3 ALPHA renderer and
+ *  back (also loaded by name; if it is missing the demo says so and keeps M3G). Loop: input -> fixed 20 ms steps -> draw -> flush -> rest. Input is
  *  cleared on pause and hide so no key stays pressed. Original content only. */
 public final class DemoCanvas extends GameCanvas implements Runnable {
-    public static final int TARGET_FPS = 30, TICK_MS = 20, TEXT_CARDS = 4;
+    public static final int TARGET_FPS = 30, TICK_MS = 20, TEXT_CARDS = 5;
     private final KiscPortMIDlet midlet;
     private final InputState input = new InputState();
     private final FrameStats stats = new FrameStats();
     private final Hud hud = new Hud();
     private final Font font = Font.getFont(Font.FACE_SYSTEM, Font.STYLE_PLAIN, Font.SIZE_SMALL);
     private StartupIntro intro;
-    private DemoScene scene;
-    private String sceneError;
+    private DemoScene scene, m3gScene, mascotScene;
+    private String sceneError, m3gError, notice;
+    /** Mascot alpha is the active renderer; # asks the loop to switch (never from the key event thread). */
+    private boolean useMascot;
+    private volatile boolean switchRequest;
+    private long noticeUntil;
     private String[] texts;
     private Thread thread;
     private volatile boolean running, paused, visible = true;
@@ -42,8 +47,9 @@ public final class DemoCanvas extends GameCanvas implements Runnable {
         if (!"off".equals(introSetting)) intro = new StartupIntro(midlet.getAppProperty("KiscPort-Intro-Prefix"), getWidth(), getHeight());
         try { texts = TextTable.read(getClass().getResourceAsStream("/kiscport/demo/text.ktt"), TEXT_CARDS); }
         catch (IOException e) { texts = null; }
-        try { scene = (DemoScene)Class.forName("kiscport.renderer.CubeScene").newInstance(); }
-        catch (Throwable e) { sceneError = "M3G no disponible"; }
+        try { m3gScene = (DemoScene)Class.forName("kiscport.renderer.CubeScene").newInstance(); }
+        catch (Throwable e) { m3gError = "M3G no disponible"; }
+        scene = m3gScene; sceneError = m3gError;
     }
 
     public synchronized void resumeLoop() {
@@ -65,6 +71,7 @@ public final class DemoCanvas extends GameCanvas implements Runnable {
                 : a == DOWN ? InputState.SLIDE : a == FIRE ? InputState.FIRE : 0;
         } catch (IllegalArgumentException e) { }
         if (code == KEY_NUM5) action = InputState.FIRE;
+        if (code == KEY_POUND) switchRequest = true;
         input.press(code, action);                                          // other keys only skip the intro
     }
     protected void keyReleased(int code) { input.release(code); }
@@ -87,6 +94,7 @@ public final class DemoCanvas extends GameCanvas implements Runnable {
                 if (intro.finished()) { intro.dispose(); intro = null; stats.reset(now); last = now; }
             } else {
                 step(now, keys);
+                if (switchRequest) { switchRequest = false; switchRenderer(now); }
                 if (scene != null) scene.render(g, w, h, angleX / 10, angleY / 10);
                 else { g.setColor(0x0b1220); g.fillRect(0, 0, w, h); }
                 overlay(g, w, h);
@@ -115,9 +123,30 @@ public final class DemoCanvas extends GameCanvas implements Runnable {
         }
     }
 
+    /** M3G <-> Mascot alpha. Mascot is created by name the first time; if the class or the API is missing, the
+     *  current renderer stays and a notice says why. Frame statistics restart so the HUD shows only the new one. */
+    private void switchRenderer(long now) {
+        if (!useMascot && mascotScene == null) {
+            try { mascotScene = (DemoScene)Class.forName("kiscport.renderer.MascotCubeScene").newInstance(); }
+            catch (Throwable e) { notice = "Mascot no disponible"; noticeUntil = now + 2000; return; }
+        }
+        useMascot = !useMascot;
+        scene = useMascot ? mascotScene : m3gScene;
+        sceneError = useMascot ? null : m3gError;
+        notice = null;
+        stats.reset(now);
+    }
+
     private void overlay(Graphics g, int w, int h) {
         g.setFont(font);
-        if (showHud) hud.stats(g, stats, TARGET_FPS, w);
+        if (showHud) {
+            hud.stats(g, stats, TARGET_FPS, w);
+            g.setColor(useMascot ? 0xffc86b : 0x9aa9bd);
+            g.drawString(useMascot ? "Mascot (alpha)  # M3G" : "M3G  # Mascot", w - 2, 48, Graphics.TOP | Graphics.RIGHT);
+        }
+        if (notice != null && System.currentTimeMillis() < noticeUntil) {
+            g.setColor(0xff6b8f); g.drawString(notice, w / 2, h / 3, Graphics.TOP | Graphics.HCENTER);
+        }
         int y = h - font.getHeight() * 2 - 4;
         g.setColor(0x9aa9bd);
         if (sceneError != null) g.drawString(sceneError, w / 2, h / 2, Graphics.TOP | Graphics.HCENTER);
@@ -131,4 +160,5 @@ public final class DemoCanvas extends GameCanvas implements Runnable {
     public int angleY() { return angleY; }
     public int ticks() { return ticks; }
     public int frames() { return frames; }
+    public boolean mascot() { return useMascot; }
 }

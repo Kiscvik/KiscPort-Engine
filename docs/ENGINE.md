@@ -1,12 +1,13 @@
-# KiscPort Engine 0.8.0
+# KiscPort Engine 0.9.0
 
-KISC-LABS, 13 de noviembre de 2026. Cómo funciona el motor, qué contiene este repositorio y qué falta.
+KISC-LABS, 14 de noviembre de 2026. Cómo funciona el motor, qué contiene este repositorio y qué falta.
 
 ## Plataforma
 
 - CLDC 1.1, MIDP 2.0 y JSR-184 (M3G); fuente Java 1.3, bytecode 45.3, preverificación CLDC StackMap.
 - El JDK 17 sólo ejecuta herramientas del PC. `scripts/test.py` rechaza a propósito una compilación que use Java SE.
-- Sin APIs propietarias. Las diferencias entre teléfonos se detectan por capacidad (`microedition.m3g.version`,
+- Sin APIs propietarias obligatorias. Mascot Capsule v3 entra sólo como renderer **alpha** opcional de la demo
+  (ver «Mascot Capsule v3 (alpha)»), cargado por nombre. Las diferencias entre teléfonos se detectan por capacidad (`microedition.m3g.version`,
   clases presentes, respuesta de MMAPI), nunca por el nombre del modelo.
 - Teléfono base: Sony Ericsson W995. W900i (M3G 1.0) se mantiene compatible.
 
@@ -25,10 +26,41 @@ KISC-LABS, 13 de noviembre de 2026. Cómo funciona el motor, qué contiene este 
 | `renderer/Strips` | Convierte listas de triángulos en tiras: una por cuadrilátero (QUAD), una por malla o ninguna |
 | `renderer/AssetSection` | Lee tramos de escenario KPS1/KPS3 y sus páginas de textura desde `AssetSection.ROOT` |
 | `renderer/CubeScene` | Escena M3G de la demo |
-| `demo/DemoCanvas`, `DemoScene` | La demo: bucle, intro, entrada, pausa, textos y FPS |
+| `renderer/MascotCubeScene` | **Alpha**: el mismo cubo con Mascot Capsule v3 (`#` en la demo) |
+| `demo/DemoCanvas`, `DemoScene` | La demo: bucle, intro, entrada, pausa, textos, FPS y cambio de renderer |
 
-Reglas que comprueba `scripts/audit.py`: M3G sólo en `kiscport/renderer/`, MMAPI sólo en `kiscport/audio/` y
-`MIDIControl` sólo en `MidiControlOut`. Así un teléfono sin esas APIs sigue arrancando.
+Reglas que comprueba `scripts/audit.py`: M3G sólo en `kiscport/renderer/`, MMAPI sólo en `kiscport/audio/`,
+`MIDIControl` sólo en `MidiControlOut` y Mascot sólo en `MascotCubeScene`. Así un teléfono sin esas APIs sigue
+arrancando.
+
+## Mascot Capsule v3 (alpha)
+
+Probe midió en los dos teléfonos del proyecto que la API más rápida depende del teléfono: con mallas sintéticas,
+Mascot fue unas 2 veces más rápida que M3G en el W995 y unas 2 veces más lenta en el W900i. Antes de decidir si
+el motor debe tener un renderer Mascot, la demo trae una escena alpha para probarlo con algo del motor y no sólo
+con pruebas sintéticas.
+
+- **Cómo se prueba.** En la demo, `#` cambia el cubo entre M3G y Mascot. Arriba a la derecha se ve
+  `M3G  # Mascot` o `Mascot (alpha)  # M3G`. Al cambiar, las estadísticas vuelven a empezar.
+- **Qué mirar.** El bucle se limita a 30 FPS, así que el FPS casi no distingue las APIs: la cifra que compara es
+  `ms` (trabajo por cuadro) y `max ms`. Anotar las dos con cada API en cada teléfono, y confirmar que el cubo
+  tiene el mismo tamaño, colores y giro que con M3G.
+- **Qué hace.** El mismo cubo que `CubeScene`: seis caras de un color, enviadas como seis `QUADS` en una sola
+  llamada `renderPrimitives`, con borrado por `fillRect`, `bind`, `flush` y `release`, las llamadas que Probe ya
+  usó en los dos teléfonos. Mascot no tiene búfer de profundidad: ordena los polígonos. Su cámara mira hacia +z
+  con y hacia abajo; la escena gira la vista 180° sobre x para que el cubo salga igual que en M3G, sin reflejo.
+- **Si falta Mascot**, la demo dice «Mascot no disponible» y sigue con M3G. Si falta M3G, `#` sigue mostrando el
+  cubo con Mascot (comprobado en el emulador sin M3G).
+- **Evidencia.** Probado en PC y en FreeJ2ME-Plus, cuya Mascot es una reimplementación en Java: eso no dice nada
+  del rendimiento ni del aspecto en un teléfono. Sin prueba en teléfono todavía. Que la clase no se enlace si
+  falta la API se comprueba con la auditoría estática, no en el emulador, que no arranca sin Mascot.
+
+**Cuándo valdría la pena moverse.** Un renderer Mascot completo sólo tiene sentido si, en el teléfono base
+(W995), con escenas del motor y no sólo el cubo, gana con claridad en `ms` y el contenido acepta sus límites: un
+color por cara o su propia iluminación, texturas BMP de 8 bits (256 colores) de hasta 256 px, mezclas al 50 %,
+suma o resta, y orden de polígonos en lugar de profundidad por píxel. M3G sigue siendo el renderer de producción y
+la ruta compatible con el W900i. Siguiente paso si el cubo confirma la ventaja: pasar un tramo de escenario
+(`AssetSection`) a Mascot y medirlo con Probe en los dos teléfonos.
 
 ## Cómo corre un cuadro
 
@@ -90,7 +122,7 @@ de ese juego. Entrarán aquí cuando estén separados (ver «Qué falta»).
 | `scripts/prepare_intro.py`, `make_intro_sound.py` | Receta de los recursos de marca (`assets/intro/`); no se volvió a ejecutar para 0.8.0, sus salidas están versionadas con hash | PC |
 | `scripts/build.py` | JAR de la demo; verifica metadatos, StackMap y dependencias | PC |
 | `scripts/test.py` | FrameStats, luz, tiras, textos, auditoría CLDC, compilación negativa | PC |
-| `scripts/smoke.py` (`absent`) | La demo con y sin M3G | Emulador |
+| `scripts/smoke.py` (`absent`) | La demo con y sin M3G, y el cubo Mascot alpha (`#`) | Emulador |
 | `scripts/reproducibility.py` | Dos construcciones idénticas | PC |
 | `scripts/build_probe.py`, `smoke_probe.py` | KiscPort Probe | PC / emulador |
 | Probe en el teléfono | Capacidades y rendimiento reales | **Teléfono** |

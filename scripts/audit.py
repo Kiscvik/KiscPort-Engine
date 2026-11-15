@@ -93,10 +93,10 @@ def resolves(models, owner, kind, member, descriptor, seen=None):
 def audit():
     jar, jad = DIST/'KiscPortDemo.jar', DIST/'KiscPortDemo.jad'
     paths = [ROOT/'tools/cldcapi11.jar', ROOT/'tools/midpapi20.jar',
-             Path(os.environ.get('M3G_API_JAR', ROOT/'tools/m3g-compile-api.jar')), ROOT/'build/midi-stub.jar']
+             Path(os.environ.get('M3G_API_JAR', ROOT/'tools/m3g-compile-api.jar')), ROOT/'build/api-stubs.jar']
     models, libraries = {}, []
     prefixes = [('java/', 'javax/microedition/io/'),
-                ('javax/microedition/',), ('javax/microedition/m3g/',), ('javax/microedition/media/control/MIDIControl',)]
+                ('javax/microedition/',), ('javax/microedition/m3g/',), ('javax/microedition/media/control/MIDIControl', 'com/mascotcapsule/micro3d/v3/')]
     for path, allowed in zip(paths, prefixes):
         libraries.append(dict(file=path.name, sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
         with zipfile.ZipFile(path) as z:
@@ -124,7 +124,8 @@ def audit():
             if not name.startswith('kiscport/'):
                 assert name.startswith(('java/lang/', 'java/util/', 'java/io/',
                                         'javax/microedition/lcdui/', 'javax/microedition/midlet/',
-                                        'javax/microedition/m3g/', 'javax/microedition/media/')), name
+                                        'javax/microedition/m3g/', 'javax/microedition/media/',
+                                        'com/mascotcapsule/micro3d/v3/')), name
                 external.add(name)
         if not m['name'].startswith('kiscport/renderer/'):
             assert not any(c.startswith('javax/microedition/m3g/') for c in m['classes']), 'M3G leaked into diagnostic classes'
@@ -133,6 +134,9 @@ def audit():
         # Optional JSR-135 MIDIControl: one class, loaded by name, so its absence is a catchable error.
         if m['name'] != 'kiscport/audio/MidiControlOut':
             assert 'javax/microedition/media/control/MIDIControl' not in m['classes'], 'MIDIControl outside MidiControlOut: ' + m['name']
+        # Mascot Capsule v3 (alpha renderer): optional and proprietary, one class, loaded by name.
+        if m['name'] != 'kiscport/renderer/MascotCubeScene':
+            assert not any(c.startswith('com/mascotcapsule/') for c in m['classes']), 'Mascot outside MascotCubeScene: ' + m['name']
         for kind, owner, member, descriptor in m['refs']:
             assert resolves(models, owner, kind, member, descriptor), 'unavailable member: %s.%s%s' % (owner, member, descriptor)
             if not owner.startswith('kiscport/'):
@@ -147,6 +151,7 @@ def audit():
                 limits=['M3G compile symbols are from pinned FreeJ2ME-Plus, not a certified Sony Ericsson SDK.',
                         'Reflection strings are exercised by full and absent emulator smoke tests.',
                         'MIDIControl symbols are a hand-written compile stub of JSR-135 (probe/stubs), not a vendor SDK.',
+                        'Mascot Capsule v3 symbols are hand-written compile stubs (probe/stubs), not an HI Corporation SDK; the alpha renderer has no phone run yet.',
                         'CLDC verification and driver behavior require the physical W900i.'])
 
 
@@ -157,5 +162,5 @@ if __name__ == '__main__':
     destination = ROOT/'build'/'audit.json'
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(report, indent=2, sort_keys=True)+'\n')
-    print('PASS: CLDC/MIDP/M3G class and member dependencies resolve; optional M3G isolated')
+    print('PASS: CLDC/MIDP/M3G class and member dependencies resolve; optional M3G isolated; Mascot only in MascotCubeScene')
     print('Audit:', destination)
