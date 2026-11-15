@@ -43,8 +43,7 @@ final class M3GBench extends GameCanvas implements Bench, Runnable {
     private Transform cameraTransform, objectTransform;
     private Background background;
     private volatile String status = "";
-    /** 0 saves a capture of the next frame (drawn apart, outside the timing); any other key stops the run:
-     *  the current step ends and the remaining steps are skipped. */
+    /** 0 saves a capture of the next frame (drawn apart, outside the timing); * stops the run. */
     private volatile boolean stop, captureRequest;
     private int step, steps;
     private String captured;
@@ -61,7 +60,12 @@ final class M3GBench extends GameCanvas implements Bench, Runnable {
         new Thread(this).start();
     }
 
-    protected void keyPressed(int code) { if (code == KEY_NUM0) captureRequest = true; else stop = true; }
+    /** 0 saves a capture of the next frame, * stops the run (the current step ends, the rest are skipped). Any other
+     *  key does nothing, so a key can be pressed to keep the phone's screen from turning off during a long run. */
+    protected void keyPressed(int code) {
+        if (code == KEY_NUM0) captureRequest = true;
+        else if (code == KEY_STAR) stop = true;
+    }
 
     public void run() {
         try {
@@ -74,6 +78,7 @@ final class M3GBench extends GameCanvas implements Bench, Runnable {
             background = new Background(); background.setColor(0x101820);
             steps = test == ProbeCanvas.BENCH_GEOMETRY ? GRIDS.length : test == ProbeCanvas.BENCH_SUBMIT ? 3
                 : test == ProbeCanvas.BENCH_TEXTURES ? TEXTURES.length : test == ProbeCanvas.BENCH_FILL ? 4 : test == ProbeCanvas.BENCH_UPLOAD ? 4
+                : test == ProbeCanvas.BENCH_COMPARE ? ProbeCanvas.COMPARE_NAMES.length
                 : GRIDS.length + 3 + TEXTURES.length + 4 + 4;
             switch (test) {
                 case ProbeCanvas.BENCH_GEOMETRY: geometry(); break;
@@ -82,6 +87,7 @@ final class M3GBench extends GameCanvas implements Bench, Runnable {
                 case ProbeCanvas.BENCH_FILL: fill(); break;
                 case ProbeCanvas.BENCH_UPLOAD: upload(); break;
                 case ProbeCanvas.BENCH_ALL: geometry(); submission(); textures(); fill(); upload(); break;
+                case ProbeCanvas.BENCH_COMPARE: compare(); break;
             }
         } catch (Throwable e) {
             out.addElement("ERROR " + e);
@@ -128,22 +134,52 @@ final class M3GBench extends GameCanvas implements Bench, Runnable {
             System.gc();
             long free = Runtime.getRuntime().freeMemory(), t = System.currentTimeMillis();
             Texture2D texture;
-            try {
-                int[] argb = new int[side * side];
-                for (int y = 0; y < side; y++) for (int x = 0; x < side; x++)
-                    argb[y * side + x] = ((x >> 2) + (y >> 2) & 1) == 0 ? 0xffe0e0e0 : 0xff2060c0;
-                Image image = Image.createRGBImage(argb, side, side, false);
-                argb = null;
-                texture = new Texture2D(new Image2D(Image2D.RGB, image));
-                texture.setFiltering(Texture2D.FILTER_BASE_LEVEL, Texture2D.FILTER_NEAREST);
-                texture.setBlending(Texture2D.FUNC_REPLACE);
-            } catch (Throwable e) { out.addElement("TEX " + side + ": NO " + e); break; }
+            try { texture = checker(side); }
+            catch (Throwable e) { out.addElement("TEX " + side + ": NO " + e); break; }
             int createMs = (int)(System.currentTimeMillis() - t);
             long used = free - Runtime.getRuntime().freeMemory();
             int[] r = measure(grid(12, 16, QUAD, texture, null), 1, "TEX " + side);
             if (stop) return;
             out.addElement("TEX " + side + "x" + side + ": crear " + createMs + " ms, heap " + (used > 0 ? used / 1024 : 0) + " KB, " + text(r));
             if (r[1] > STOP_MS * 10) break;
+        }
+    }
+
+    /** Checker texture of side px, 4 px squares (0xe0e0e0 / 0x2060c0), nearest filtering, replace. */
+    private static Texture2D checker(int side) {
+        int[] argb = new int[side * side];
+        for (int y = 0; y < side; y++) for (int x = 0; x < side; x++)
+            argb[y * side + x] = ((x >> 2) + (y >> 2) & 1) == 0 ? 0xffe0e0e0 : 0xff2060c0;
+        Image image = Image.createRGBImage(argb, side, side, false);
+        argb = null;
+        Texture2D texture = new Texture2D(new Image2D(Image2D.RGB, image));
+        texture.setFiltering(Texture2D.FILTER_BASE_LEVEL, Texture2D.FILTER_NEAREST);
+        texture.setBlending(Texture2D.FUNC_REPLACE);
+        return texture;
+    }
+
+    /** The comparison loads (ProbeCanvas.COMPARE_NAMES) with M3G, as in the separate tests; each frame time also
+     *  goes to the owner, which sets it against Mascot's. */
+    private void compare() {
+        for (int load = 0; load < ProbeCanvas.COMPARE_NAMES.length && !stop; load++) {
+            String name = "CMP M3G " + ProbeCanvas.COMPARE_NAMES[load];
+            int[] r;
+            try {
+                if (load == 0) r = measure(grid(16, 24, QUAD, null, null), 1, name);
+                else if (load == 1) r = measure(grid(32, 48, QUAD, null, null), 1, name);
+                else if (load == 2) r = measure(grid(12, 16, QUAD, checker(128), null), 1, name);
+                else {
+                    CompositingMode noDepth = new CompositingMode();
+                    noDepth.setDepthTestEnable(false); noDepth.setDepthWriteEnable(false);
+                    extentX = 2000; extentY = 2600; still = true;
+                    Mesh quad = grid(1, 1, QUAD, null, noDepth);
+                    extentX = 800; extentY = 1000;
+                    try { r = measure(quad, 4, name); } finally { still = false; }
+                }
+            } catch (Throwable e) { out.addElement(name + ": NO " + ProbeCanvas.reason(e)); continue; }
+            if (stop) break;
+            out.addElement(name + ": " + text(r));
+            if (r[0] > 0) owner.measured(0, load, r[1]);
         }
     }
 
@@ -244,7 +280,7 @@ final class M3GBench extends GameCanvas implements Bench, Runnable {
         g.setColor(0xffff40); g.drawString(label, 2, 1, Graphics.TOP | Graphics.LEFT);
         g.setColor(0xffffff); g.drawString("Paso " + step + " de " + steps, 2, h + 1, Graphics.TOP | Graphics.LEFT);
         if (captured != null && now - capturedAt < 2500) { g.setColor(0x80ff80); g.drawString(captured, 2, getHeight() - h - 1, Graphics.TOP | Graphics.LEFT); }
-        else { g.setColor(0xc0c0c0); g.drawString("0 captura   otra tecla: parar", 2, getHeight() - h - 1, Graphics.TOP | Graphics.LEFT); }
+        else { g.setColor(0xc0c0c0); g.drawString("0 captura   * parar   (otras no paran)", 2, getHeight() - h - 1, Graphics.TOP | Graphics.LEFT); }
     }
 
     /** One frame of the current step into a mutable image, saved as PNG (JSR-75, loaded by name). Rendering

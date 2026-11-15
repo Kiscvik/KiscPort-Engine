@@ -8,10 +8,11 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /** FreeJ2ME-Plus run of the engine demo: intro, then the cube (or, without M3G, the loop keeps running and says
- *  so), fixed-step spin independent of frames, joystick input, HUD toggle, pause/resume. Desktop only. */
+ *  so), fixed-step spin independent of frames, joystick input, HUD toggle, # to the Mascot Capsule v3 alpha cube
+ *  and back, pause/resume. Desktop only: FreeJ2ME's Mascot is a Java reimplementation, not the phone's. */
 public final class DemoSmoke {
     static Object canvas; static File evidence;
-    static final int RIGHT = -4, FIRE = -5;
+    static final int RIGHT = -4, FIRE = -5, POUND = 35;
     static Object field(Object o, String n) throws Exception { Field f = o.getClass().getDeclaredField(n); f.setAccessible(true); return f.get(o); }
     static int call(String m) throws Exception { Method x = canvas.getClass().getMethod(m); return ((Integer) x.invoke(canvas)).intValue(); }
     static void check(boolean ok, String label) { if (!ok) throw new AssertionError(label); System.out.println("PASS: " + label); }
@@ -70,6 +71,20 @@ public final class DemoSmoke {
         check(((Integer) field(canvas, "spinY")).intValue() == 30, "joystick right turns the cube the other way");
         MobilePlatform.keyReleased(RIGHT); Thread.sleep(200);
         image(m3g ? "cube-hud-off" : "no-m3g-hud-off");
+        Method mascot = canvas.getClass().getMethod("mascot");
+        key(POUND);
+        check(((Boolean) mascot.invoke(canvas)).booleanValue() && field(canvas, "scene") == field(canvas, "mascotScene")
+            && field(canvas, "scene") != null && field(canvas, "sceneError") == null, "# switches to the Mascot alpha cube (loaded by name)");
+        int ym = call("angleY"), fm = call("frames"); Thread.sleep(800);
+        check(call("angleY") != ym && call("frames") > fm + 3, "the Mascot alpha cube keeps turning and drawing");
+        image("mascot-a");
+        check(colours() >= 3, "the Mascot alpha cube is drawn (background and at least two faces)");
+        Thread.sleep(700); image("mascot-b");                                // a second angle: face order by eye
+        key(FIRE); Thread.sleep(300); image("mascot-hud"); key(FIRE);        // label "Mascot (alpha)" on the HUD
+        key(POUND);
+        check(!((Boolean) mascot.invoke(canvas)).booleanValue() && field(canvas, "scene") == field(canvas, "m3gScene")
+            && (m3g ? field(canvas, "sceneError") == null : "M3G no disponible".equals(field(canvas, "sceneError"))),
+            "# switches back to " + (m3g ? "the M3G cube" : "the no-M3G message"));
         Method pause = canvas.getClass().getMethod("pauseLoop"), resume = canvas.getClass().getMethod("resumeLoop");
         pause.invoke(canvas); Thread.sleep(300);
         int paused = call("frames"); Thread.sleep(600);

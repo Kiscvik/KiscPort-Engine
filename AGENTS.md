@@ -4,8 +4,8 @@ Repositorio público de KISC-LABS. El nombre es **KiscPort** (no "Kisport").
 
 El artefacto del teléfono usa CLDC 1.1, MIDP 2.0 y JSR-184; lenguaje Java 1.3 y bytecode 45.3. El JDK moderno es
 exclusivamente una herramienta del PC. No agregar bibliotecas Java SE ni implementaciones javax/java al JAR del
-teléfono. Mantener la preverificación CLDC StackMap. Las APIs opcionales (M3G, MIDIControl, JSR-75, JSR-239) se
-cargan por nombre para que su ausencia sólo afecte a esa parte.
+teléfono. Mantener la preverificación CLDC StackMap. Las APIs opcionales (M3G, MIDIControl, JSR-75, JSR-239,
+Mascot Capsule v3) se cargan por nombre para que su ausencia sólo afecte a esa parte.
 
 Construcción: `python3 scripts/build.py`. Pruebas: `python3 scripts/test.py`, `python3 scripts/smoke.py` y
 `python3 scripts/smoke.py absent`. Probe: `python3 scripts/build_probe.py` y `python3 scripts/smoke_probe.py`.

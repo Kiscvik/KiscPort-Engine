@@ -42,6 +42,7 @@ python3 scripts/smoke.py absent         # demo en el emulador, sin M3G
 python3 scripts/reproducibility.py      # dos construcciones idénticas
 python3 scripts/build_probe.py          # dist/probe/KiscPortProbe.jar y .jad
 python3 scripts/smoke_probe.py          # Probe en el emulador
+python3 scripts/mascot.py check NIVEL   # beta: ¿cabe este nivel en Mascot Capsule v3?
 ```
 
 Para instalar en el teléfono, copia el `.jar` y el `.jad` (por USB, Bluetooth o tarjeta) y ábrelos desde el
@@ -91,3 +92,15 @@ Las herramientas que descarga `bootstrap.py` tienen sus propias licencias y no s
 
 **0.8.0** (13 de noviembre de 2026): primera versión pública. Motor, demo y Probe 1.2.0 probados en PC y
 FreeJ2ME-Plus; pendiente su prueba en teléfonos. Lo siguiente está en [docs/ENGINE.md](docs/ENGINE.md#qué-falta).
+
+**0.9.0** (14 de noviembre de 2026): **Mascot Capsule v3 en alpha y beta, para estudio futuro;** no cambia el
+renderer de producción. En la demo, `#` cambia el cubo entre M3G y Mascot dentro del bucle del motor: es la base para probar un renderer Mascot, no una medida (el cubo tiene 12
+triángulos). Y en beta, para probar Mascot con el siguiente juego: `scripts/mascot.py` convierte páginas a BMP de
+8 bits y dice si un nivel cabe en Mascot, y `MascotSection` dibuja tramos KPS3 con Mascot sin M3G. M3G sigue siendo
+el renderer de producción. Probado en PC y FreeJ2ME-Plus (su Mascot es una reimplementación); pendiente en
+teléfonos. Detalles y criterio para decidir en [docs/ENGINE.md](docs/ENGINE.md#mascot-capsule-v3-alpha).
+
+**Probe 1.4.0** (14 de noviembre de 2026): añade Mascot Capsule v3 (prueba 7), una comparación con M3G que dice
+cuál conviene en cada teléfono (prueba 8), y en las pruebas 3D sólo `*` las detiene: otra tecla mantiene la
+pantalla encendida sin cortarlas. Probada en PC y
+FreeJ2ME-Plus; pendiente en teléfonos.

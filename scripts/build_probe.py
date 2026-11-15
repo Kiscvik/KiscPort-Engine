@@ -3,7 +3,7 @@
 
 Same toolchain and limits as the game: ECJ language 1.3 / target 1.1, CLDC 1.1 + MIDP 2.0 boot
 classpath, ProGuard -microedition preverification (CLDC StackMap), bytecode 45.3. Compile-only stubs
-(MIDIControl, JSR-239 subset) and the M3G symbol jar are never packaged. Output:
+(MIDIControl, JSR-239 subset, JSR-75, Mascot Capsule v3 core calls) and the M3G symbol jar are never packaged. Output:
 dist/probe/KiscPortProbe.{jar,jad} + SHA256SUMS. Successor of the MMAPI diagnostic 1.0.0. Does not touch dist/KiscPortDemo.*."""
 import argparse, hashlib, json, os, sys, tempfile, zipfile
 from pathlib import Path
@@ -11,7 +11,7 @@ from build import ROOT, jdk, run, archive
 from verify import inspect, props
 
 DIAG = ROOT / 'probe'
-ATTRS = {'MIDlet-Name': 'KiscPort Probe', 'MIDlet-Version': '1.2.0', 'MIDlet-Vendor': 'KISC-LABS',
+ATTRS = {'MIDlet-Name': 'KiscPort Probe', 'MIDlet-Version': '1.4.0', 'MIDlet-Vendor': 'KISC-LABS',
          'MIDlet-1': 'KiscPort Probe,,kiscport.probe.KiscPortProbe',
          'MicroEdition-Configuration': 'CLDC-1.1', 'MicroEdition-Profile': 'MIDP-2.0'}
 
@@ -69,17 +69,22 @@ def main():
     # Same checks as scripts/verify.py, for this package.
     descriptor = props(jad.read_bytes())
     assert descriptor['MIDlet-Jar-Size'] == str(jar.stat().st_size)
-    maps = classes = 0
+    maps = classes = mascot = 0
     with zipfile.ZipFile(jar) as z:
         assert z.testzip() is None
         for name in z.namelist():
             assert name == 'META-INF/MANIFEST.MF' or name.startswith(('kiscport/probe/', 'snd/')), 'unexpected entry ' + name
             if name.endswith('.class'):
-                maps += inspect(z.read(name)); classes += 1
+                data = z.read(name)
+                maps += inspect(data); classes += 1
+                # Mascot Capsule v3 is optional and proprietary: only MascotBench (loaded by name) may link to it.
+                if b'com/mascotcapsule/' in data:
+                    assert name.startswith('kiscport/probe/MascotBench'), 'Mascot Capsule referenced outside MascotBench: ' + name
+                    mascot += 1
         m = props(z.read('META-INF/MANIFEST.MF'))
         assert all(descriptor[k] == v for k, v in m.items() if k != 'Manifest-Version')
-    assert maps > 0
-    print('PASS: probe package: bytecode 45.3, CLDC StackMap, only kiscport/probe + snd/, stubs not packaged')
+    assert maps > 0 and mascot > 0
+    print('PASS: probe package: bytecode 45.3, CLDC StackMap, only kiscport/probe + snd/, stubs not packaged, Mascot only in MascotBench')
     print('classes=%d StackMap methods=%d JAR bytes=%d SHA256=%s' % (classes, maps, jar.stat().st_size, hashlib.sha256(jar.read_bytes()).hexdigest()))
 
 
