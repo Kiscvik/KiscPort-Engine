@@ -10,7 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import javax.microedition.lcdui.Graphics;
 
-/** BETA: one KPS3 level chunk drawn with Mascot Capsule Micro3D v3 instead of M3G. It reads the same chunkN.kps as
+/** Beta de Mascot para estudio futuro: not part of the production renderer (M3G).
+ *  BETA: one KPS3 level chunk drawn with Mascot Capsule Micro3D v3 instead of M3G. It reads the same chunkN.kps as
  *  AssetSection and stage_N.bmp pages made by scripts/mascot.py texture. It does not use AssetSection or M3G, so it
  *  works on a phone without JSR-184. Load it by name, as the demo loads its scenes: it is, with MascotCubeScene,
  *  the only engine class linked to com.mascotcapsule (scripts/audit.py). Public methods use only ints and lcdui.

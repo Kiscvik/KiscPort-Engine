@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Map;
 import javax.imageio.ImageIO;
 
-/** BETA, PC only (pinned host JDK; never compiled into a MIDlet). Tools for Mascot Capsule Micro3D v3:
+/** Beta de Mascot para estudio futuro: not part of the production renderer (M3G).
+ *  BETA, PC only (pinned host JDK; never compiled into a MIDlet). Tools for Mascot Capsule Micro3D v3:
  *
  *  texture IN.png OUT.bmp   PNG -> 8-bit indexed BMP (the layout KiscPort Probe's MascotBench used on the W995 and
  *                           the W900i: BITMAPINFOHEADER, 256-entry palette, bottom-up, rows padded to 4 bytes),

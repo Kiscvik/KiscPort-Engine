@@ -7,7 +7,8 @@ import com.mascotcapsule.micro3d.v3.Graphics3D;
 import javax.microedition.lcdui.Graphics;
 import kiscport.demo.DemoScene;
 
-/** ALPHA: the demo cube drawn with Mascot Capsule Micro3D v3 instead of M3G, to judge on the phone whether a
+/** Beta de Mascot para estudio futuro: not part of the production renderer (M3G).
+ *  ALPHA: the demo cube drawn with Mascot Capsule Micro3D v3 instead of M3G, to judge on the phone whether a
  *  Mascot renderer is worth it. Loaded by name; the only engine class that links to com.mascotcapsule.
  *  Same cube, colours, framing and turn as CubeScene, with the differences of the API: one colour per face, six
  *  QUADS in one renderPrimitives call, no depth buffer (the API sorts the polygons), integer maths with

@@ -36,6 +36,9 @@ arrancando.
 
 ## Mascot Capsule v3 (alpha)
 
+> **Beta de Mascot para estudio futuro.** Nada de esta sección cambia el renderer de producción (M3G) ni los
+> juegos actuales: es material para evaluar Mascot en un próximo juego.
+
 Con Probe 1.3.0 (pruebas 7 y 9, mallas sintéticas), el propietario de los teléfonos informó, con fotos del
 Informe, que la API más rápida depende del teléfono: Mascot fue unas 2 veces más rápida que M3G en el W995 y unas
 2 veces más lenta en el W900i. Falta confirmar qué teléfono es cada uno con la línea `platform=` y la prueba 8.
